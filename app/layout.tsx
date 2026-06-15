@@ -3,7 +3,7 @@ import './globals.css'
 
 export const metadata: Metadata = {
   title: 'CHUORE — Gestión',
-  description: 'Panel de gestión CHUORE Churros & More',
+  description: 'Panel de gestión CHUORE Churros & More · Santiago de Compostela',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

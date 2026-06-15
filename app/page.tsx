@@ -11,8 +11,8 @@ export default function Home() {
     })
   }, [router])
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ width: '18px', height: '18px', border: '2px solid #111827', borderTopColor: 'transparent', borderRadius: '50%' }} className="spin" />
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--c-bg)' }}>
+      <div style={{ width: '20px', height: '20px', border: '2px solid var(--c-brown)', borderTopColor: 'transparent', borderRadius: '50%' }} className="spin" />
     </div>
   )
 }

@@ -1,85 +1,88 @@
 export const dynamic = 'force-dynamic'
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 
+/* ── helpers ── */
 const r2 = (n: number) => Math.round(n * 100) / 100
 const fe = (n: number) => n.toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + ' €'
+const f2 = (n: number) => n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const sgn = (n: number) => n >= 0 ? '+' : ''
+const DOW = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 
 const MONTHS = [
-  { label: 'Enero', m25: '2025-01', m26: '2026-01', days: 31 },
-  { label: 'Febrero', m25: '2025-02', m26: '2026-02', days: 28 },
-  { label: 'Marzo', m25: '2025-03', m26: '2026-03', days: 31 },
-  { label: 'Abril', m25: '2025-04', m26: '2026-04', days: 30 },
-  { label: 'Mayo', m25: '2025-05', m26: '2026-05', days: 31 },
-  { label: 'Junio', m25: '2025-06', m26: '2026-06', days: 30 },
-  { label: 'Julio', m25: '2025-07', m26: '2026-07', days: 31 },
-  { label: 'Agosto', m25: '2025-08', m26: '2026-08', days: 31 },
+  { label: 'Enero',      m25: '2025-01', m26: '2026-01', days: 31 },
+  { label: 'Febrero',    m25: '2025-02', m26: '2026-02', days: 28 },
+  { label: 'Marzo',      m25: '2025-03', m26: '2026-03', days: 31 },
+  { label: 'Abril',      m25: '2025-04', m26: '2026-04', days: 30 },
+  { label: 'Mayo',       m25: '2025-05', m26: '2026-05', days: 31 },
+  { label: 'Junio',      m25: '2025-06', m26: '2026-06', days: 30 },
+  { label: 'Julio',      m25: '2025-07', m26: '2026-07', days: 31 },
+  { label: 'Agosto',     m25: '2025-08', m26: '2026-08', days: 31 },
   { label: 'Septiembre', m25: '2025-09', m26: '2026-09', days: 30 },
-  { label: 'Octubre', m25: '2025-10', m26: '2026-10', days: 31 },
-  { label: 'Noviembre', m25: '2025-11', m26: '2026-11', days: 30 },
-  { label: 'Diciembre', m25: '2025-12', m26: '2026-12', days: 31 },
+  { label: 'Octubre',    m25: '2025-10', m26: '2026-10', days: 31 },
+  { label: 'Noviembre',  m25: '2025-11', m26: '2026-11', days: 30 },
+  { label: 'Diciembre',  m25: '2025-12', m26: '2026-12', days: 31 },
 ]
 
-interface DayData { [fecha: string]: number }
-interface MonthStats { total: number; dias: number; media: number }
+type DayMap = Record<string, number>
 
-function calcMes(prefix: string, data: DayData, hastaDia?: number): MonthStats {
+function calcMes(prefix: string, data: DayMap, hastaDia?: number) {
   let entries = Object.entries(data).filter(([k]) => k.startsWith(prefix))
-  if (hastaDia !== undefined) entries = entries.filter(([k]) => parseInt(k.slice(-2)) <= hastaDia)
+  if (hastaDia !== undefined) entries = entries.filter(([k]) => parseInt(k.slice(8)) <= hastaDia)
   const total = r2(entries.reduce((a, [, v]) => a + v, 0))
   const dias = entries.length
-  const media = dias > 0 ? r2(total / dias) : 0
-  return { total, dias, media }
+  return { total, dias, media: dias > 0 ? r2(total / dias) : 0 }
 }
 
-function ultimoDia(prefix: string, data: DayData): number | null {
+function lastDay(prefix: string, data: DayMap) {
   const keys = Object.keys(data).filter(k => k.startsWith(prefix))
   if (!keys.length) return null
-  return Math.max(...keys.map(k => parseInt(k.slice(-2))))
+  return Math.max(...keys.map(k => parseInt(k.slice(8))))
 }
 
 export default function ComparativaPage() {
-  const [d25, setD25] = useState<DayData>({})
-  const [d26, setD26] = useState<DayData>({})
+  const [d25, setD25] = useState<DayMap>({})
+  const [d26, setD26] = useState<DayMap>({})
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState(0)
+  const [tab, setTab] = useState(0)
   const [view, setView] = useState<'analisis' | 'diario'>('analisis')
 
-  useEffect(() => {
-    async function load() {
-      const { data } = await supabase.from('ventas').select('fecha, total').order('fecha')
-      if (!data) return
-      const map25: DayData = {}
-      const map26: DayData = {}
-      data.forEach(({ fecha, total }) => {
-        const fechaStr = String(fecha).slice(0, 10)
-        if (fechaStr.startsWith('2025')) map25[fechaStr] = total
-        if (fechaStr.startsWith('2026')) map26[fechaStr] = total
-      })
-      setD25(map25)
-      setD26(map26)
-      setLoading(false)
-    }
-    load()
+  const loadData = useCallback(async () => {
+    const { data, error } = await supabase
+      .from('ventas')
+      .select('fecha, total')
+      .order('fecha')
+    if (error || !data) return
+    const map25: DayMap = {}
+    const map26: DayMap = {}
+    data.forEach(({ fecha, total }) => {
+      const f = String(fecha).slice(0, 10)
+      if (f.startsWith('2025')) map25[f] = Number(total)
+      if (f.startsWith('2026')) map26[f] = Number(total)
+    })
+    setD25(map25)
+    setD26(map26)
+    setLoading(false)
   }, [])
+
+  useEffect(() => { loadData() }, [loadData])
 
   const today = new Date().toISOString().slice(0, 10)
 
-  // Calcular meses con datos
   const mesesConDatos = MONTHS.filter(m => {
     const s25 = calcMes(m.m25, d25)
     const s26 = calcMes(m.m26, d26)
     return s25.dias > 0 || s26.dias > 0
   })
 
-  // YTD totales
+  // YTD
   let ytd25 = 0, ytd26 = 0, dias25 = 0, dias26 = 0
   mesesConDatos.forEach(m => {
-    const ult = ultimoDia(m.m26, d26)
-    const partial = ult !== null && calcMes(m.m26, d26).dias < m.days
-    const lim = partial ? ult : undefined
+    const ult = lastDay(m.m26, d26)
+    const s26full = calcMes(m.m26, d26)
+    const partial = s26full.dias < m.days && ult !== null
+    const lim = partial ? ult! : undefined
     const s25 = calcMes(m.m25, d25, lim)
     const s26 = calcMes(m.m26, d26)
     ytd25 = r2(ytd25 + s25.total)
@@ -89,173 +92,185 @@ export default function ComparativaPage() {
   })
   const mTot25 = dias25 > 0 ? r2(ytd25 / dias25) : 0
   const mTot26 = dias26 > 0 ? r2(ytd26 / dias26) : 0
-  const pctTotal = mTot25 > 0 ? (((mTot26 - mTot25) / mTot25) * 100) : 0
-  const posTotal = pctTotal >= 0
+  const pctYTD = mTot25 > 0 ? (((mTot26 - mTot25) / mTot25) * 100) : 0
+  const posYTD = pctYTD >= 0
 
-  const DOW = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
-
-  const s = {
-    bg: '#0A0A0A', bg2: '#111111', bg3: '#1A1A1A', bg4: '#222222',
-    border: '#2A2A2A', border2: '#333333',
-    text: '#F0F0F0', text2: '#A0A0A0', text3: '#555555',
-    red: '#E84040', redDim: '#7A1A1A', redBg: '#1E0808',
-    green: '#2ECC71', grnDim: '#1A6B3A', grnBg: '#071A10',
-    gold: '#F0B429',
+  /* ── Design tokens (dark dashboard style, consistent with CHUORE) ── */
+  const dark = {
+    bg: '#141009', bg2: '#1C140C', bg3: '#251A10', bg4: '#2E2014',
+    border: '#352818', border2: '#3D2F1A',
+    text: '#F2EAE0', text2: '#B09880', text3: '#6B5540',
+    green: '#3DBA7A', gBg: '#071A10', gBorder: '#1A5A3A',
+    red: '#E05545', rBg: '#1E0808', rBorder: '#6A1A1A',
+    gold: '#C8963E',
   }
 
   if (loading) return (
-    <div style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: s.bg, borderRadius: '10px' }}>
-      <p style={{ color: s.text3, fontFamily: 'monospace', fontSize: '12px' }}>Cargando datos...</p>
+    <div style={{ minHeight: 'calc(100vh - 56px)', display: 'flex', alignItems: 'center', justifyContent: 'center', background: dark.bg, borderRadius: '10px' }}>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ width: '20px', height: '20px', border: `2px solid ${dark.gold}`, borderTopColor: 'transparent', borderRadius: '50%', margin: '0 auto 12px' }} className="spin" />
+        <p style={{ fontFamily: 'monospace', fontSize: '11px', color: dark.text3, letterSpacing: '1px', textTransform: 'uppercase' }}>Cargando datos</p>
+      </div>
     </div>
   )
 
   return (
-    <div style={{ backgroundColor: s.bg, borderRadius: '10px', minHeight: 'calc(100vh - 56px)', padding: '20px 16px 40px', color: s.text, fontFamily: 'DM Sans, system-ui, sans-serif' }}>
+    <div style={{ background: dark.bg, borderRadius: '10px', minHeight: 'calc(100vh - 56px)', padding: '24px 20px 48px', color: dark.text, fontFamily: 'Inter, system-ui, sans-serif' }}>
+
       {/* Header */}
-      <div style={{ paddingBottom: '16px', marginBottom: '20px', borderBottom: `1px solid ${s.border2}` }}>
-        <h1 style={{ fontFamily: 'system-ui', fontSize: '28px', fontWeight: '900', color: s.red, letterSpacing: '-1px', lineHeight: 1, textTransform: 'uppercase' }}>CHUORE<br />Dashboard</h1>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px' }}>
-          <p style={{ fontFamily: 'monospace', fontSize: '11px', color: s.text3, letterSpacing: '0.5px', textTransform: 'uppercase' }}>2025 vs 2026 · Caja</p>
-          <span style={{ fontFamily: 'monospace', fontSize: '9px', color: s.gold, background: '#1A1200', border: `1px solid #3A2A00`, padding: '2px 7px', borderRadius: '2px', letterSpacing: '1px', textTransform: 'uppercase' }}>● En curso</span>
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: '24px', paddingBottom: '20px', borderBottom: `1px solid ${dark.border2}` }}>
+        <div>
+          <p style={{ fontFamily: 'monospace', fontSize: '9px', color: dark.text3, letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '6px' }}>CHUORE · Análisis de caja</p>
+          <h1 style={{ fontFamily: 'Playfair Display, Georgia, serif', fontSize: '26px', fontWeight: '600', color: dark.text, letterSpacing: '-0.3px', lineHeight: 1 }}>
+            2025 <span style={{ color: dark.text3 }}>vs</span> 2026
+          </h1>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ fontFamily: 'monospace', fontSize: '9px', color: dark.gold, background: 'rgba(200,150,62,0.1)', border: `1px solid rgba(200,150,62,0.25)`, padding: '3px 8px', borderRadius: '3px', letterSpacing: '1.5px', textTransform: 'uppercase' }}>
+            ● En curso
+          </span>
+          <button onClick={loadData} style={{ background: dark.bg3, border: `1px solid ${dark.border}`, borderRadius: '6px', padding: '5px 10px', color: dark.text3, fontSize: '11px', cursor: 'pointer', fontFamily: 'monospace', letterSpacing: '0.5px' }}>
+            ↻ Actualizar
+          </button>
         </div>
       </div>
 
-      {/* Nav */}
-      <div style={{ display: 'flex', marginBottom: '20px', background: s.bg3, borderRadius: '6px', padding: '3px', gap: '3px' }}>
+      {/* Nav tabs */}
+      <div style={{ display: 'flex', gap: '3px', marginBottom: '24px', background: dark.bg3, borderRadius: '8px', padding: '3px', width: 'fit-content' }}>
         {(['analisis', 'diario'] as const).map(v => (
           <button key={v} onClick={() => setView(v)}
-            style={{ flex: 1, padding: '9px 8px', fontFamily: 'inherit', fontSize: '12px', fontWeight: '600', cursor: 'pointer', background: view === v ? s.bg4 : 'none', border: 'none', color: view === v ? s.text : s.text3, borderRadius: '4px', boxShadow: view === v ? '0 1px 4px rgba(0,0,0,.4)' : 'none' }}>
-            {v === 'analisis' ? 'Análisis' : 'Diario'}
+            style={{ padding: '8px 20px', fontFamily: 'inherit', fontSize: '12px', fontWeight: '600', cursor: 'pointer', background: view === v ? dark.bg4 : 'transparent', border: 'none', color: view === v ? dark.text : dark.text3, borderRadius: '6px', letterSpacing: '0.02em', transition: 'all 0.15s', boxShadow: view === v ? `0 1px 4px rgba(0,0,0,0.4)` : 'none' }}>
+            {v === 'analisis' ? 'Análisis' : 'Detalle diario'}
           </button>
         ))}
       </div>
 
-      {/* ANÁLISIS VIEW */}
+      {/* ══ ANÁLISIS ══ */}
       {view === 'analisis' && (
         <div>
           {/* Trend banner */}
-          <div style={{ borderRadius: '8px', padding: '16px 14px', marginBottom: '16px', border: `1px solid ${posTotal ? s.grnDim : s.redDim}`, background: posTotal ? s.grnBg : s.redBg, display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-            <div style={{ fontSize: '28px', flexShrink: 0, lineHeight: 1, marginTop: '2px' }}>{posTotal ? '📈' : '📉'}</div>
+          <div style={{ borderRadius: '8px', padding: '16px 18px', marginBottom: '20px', border: `1px solid ${posYTD ? dark.gBorder : dark.rBorder}`, background: posYTD ? dark.gBg : dark.rBg, display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
+            <div style={{ fontSize: '24px', flexShrink: 0, lineHeight: 1, marginTop: '2px' }}>{posYTD ? '↑' : '↓'}</div>
             <div>
-              <div style={{ fontFamily: 'system-ui', fontSize: '16px', fontWeight: '900', lineHeight: 1.2, marginBottom: '6px', color: posTotal ? s.green : s.red }}>
-                {posTotal ? 'CRECIENDO' : 'BAJANDO'} {sgn(pctTotal)}{pctTotal.toFixed(1)}%
-              </div>
-              <div style={{ fontSize: '12px', color: s.text2, lineHeight: 1.7 }}>
-                Media diaria 2026: <strong style={{ color: s.text }}>{fe(mTot26)}</strong> vs <strong style={{ color: s.text2 }}>{fe(mTot25)}</strong> en 2025.<br />
-                <strong style={{ color: s.text }}>{sgn(mTot26 - mTot25)}{fe(r2(mTot26 - mTot25))} por día abierto.</strong>
-              </div>
+              <p style={{ fontWeight: '700', fontSize: '15px', color: posYTD ? dark.green : dark.red, marginBottom: '6px', letterSpacing: '-0.2px' }}>
+                {posYTD ? 'Crecimiento' : 'Caída'} {sgn(pctYTD)}{pctYTD.toFixed(1)}% en media diaria
+              </p>
+              <p style={{ fontSize: '12px', color: dark.text2, lineHeight: 1.7 }}>
+                Media por día abierto 2026: <strong style={{ color: dark.text }}>{fe(mTot26)}</strong> vs <strong style={{ color: dark.text2 }}>{fe(mTot25)}</strong> en 2025.{' '}
+                <strong style={{ color: dark.text }}>{sgn(r2(mTot26 - mTot25))}{fe(r2(mTot26 - mTot25))} por día abierto.</strong>
+              </p>
             </div>
           </div>
 
           {/* KPIs análisis */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '8px', marginBottom: '24px' }}>
             {[
-              { label: 'Media diaria 2025', value: fe(mTot25), sub: `${dias25} días`, dim: true },
-              { label: 'Media diaria 2026', value: fe(mTot26), sub: `${dias26} días`, dim: false },
-              { label: 'Crecimiento real', value: `${sgn(pctTotal)}${pctTotal.toFixed(1)}%`, sub: `${sgn(r2(mTot26 - mTot25))}${fe(r2(mTot26 - mTot25))}/día`, green: posTotal },
-              { label: 'YTD 2026 total', value: fe(ytd26), sub: `vs 2025: ${sgn(r2(ytd26 - ytd25))}${fe(r2(ytd26 - ytd25))}`, dim: false },
+              { label: 'Media diaria 2025', val: fe(mTot25), sub: `${dias25} días`, dim: true },
+              { label: 'Media diaria 2026', val: fe(mTot26), sub: `${dias26} días`, dim: false },
+              { label: 'Crecimiento real', val: `${sgn(pctYTD)}${pctYTD.toFixed(1)}%`, sub: `${sgn(r2(mTot26 - mTot25))}${fe(r2(mTot26 - mTot25))}/día`, green: posYTD, red: !posYTD },
+              { label: 'YTD 2026', val: fe(ytd26), sub: `vs 2025: ${sgn(r2(ytd26 - ytd25))}${fe(r2(ytd26 - ytd25))}`, dim: false },
             ].map((k, i) => (
-              <div key={i} style={{ background: s.bg2, border: `1px solid ${s.border}`, borderRadius: '8px', padding: '12px' }}>
-                <div style={{ fontFamily: 'monospace', fontSize: '9px', color: s.text3, letterSpacing: '0.7px', textTransform: 'uppercase', marginBottom: '5px' }}>{k.label}</div>
-                <div style={{ fontFamily: 'system-ui', fontSize: '22px', fontWeight: '800', letterSpacing: '-0.5px', lineHeight: 1, color: k.green ? s.green : k.dim ? s.text2 : s.text }}>{k.value}</div>
-                <div style={{ fontFamily: 'monospace', fontSize: '10px', color: k.green ? s.green : s.text3, marginTop: '4px' }}>{k.sub}</div>
+              <div key={i} style={{ background: dark.bg2, border: `1px solid ${dark.border}`, borderRadius: '8px', padding: '14px' }}>
+                <p style={{ fontFamily: 'monospace', fontSize: '9px', color: dark.text3, letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: '8px' }}>{k.label}</p>
+                <p style={{ fontSize: '20px', fontWeight: '700', letterSpacing: '-0.5px', lineHeight: 1, color: k.green ? dark.green : k.red ? dark.red : k.dim ? dark.text2 : dark.text }}>{k.val}</p>
+                <p style={{ fontFamily: 'monospace', fontSize: '10px', color: k.green ? dark.green : dark.text3, marginTop: '6px' }}>{k.sub}</p>
               </div>
             ))}
           </div>
 
           {/* Tabla comparativa */}
-          <p style={{ fontFamily: 'monospace', fontSize: '9px', color: s.text3, letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '10px', marginTop: '20px' }}>Comparativa mensual por días abiertos</p>
-          <div style={{ border: `1px solid ${s.border}`, borderRadius: '8px', overflow: 'hidden', overflowX: 'auto', marginBottom: '16px' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '480px' }}>
+          <p style={{ fontFamily: 'monospace', fontSize: '9px', color: dark.text3, letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '10px' }}>Comparativa mensual · Media por día abierto</p>
+          <div style={{ border: `1px solid ${dark.border}`, borderRadius: '8px', overflow: 'hidden', overflowX: 'auto', marginBottom: '24px' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '520px' }}>
               <thead>
-                <tr style={{ background: s.bg3 }}>
-                  {['Mes', 'Días 25', 'Días 26', 'Total 25', 'Total 26', 'Media 25', 'Media 26', '% real'].map(h => (
-                    <th key={h} style={{ fontFamily: 'monospace', fontSize: '9px', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.6px', color: s.text3, padding: '9px 12px', textAlign: h === 'Mes' ? 'left' : 'right', borderBottom: `1px solid ${s.border}`, whiteSpace: 'nowrap' }}>{h}</th>
+                <tr style={{ background: dark.bg3 }}>
+                  {['Mes', 'Días 25', 'Días 26', 'Total 25', 'Total 26', 'Media 25', 'Media 26', '% real'].map((h, i) => (
+                    <th key={h} style={{ fontFamily: 'monospace', fontSize: '9px', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.6px', color: dark.text3, padding: '10px 12px', textAlign: i === 0 ? 'left' : 'right', borderBottom: `1px solid ${dark.border}`, whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {mesesConDatos.map((m, i) => {
-                  const ult = ultimoDia(m.m26, d26)
-                  const s26data = calcMes(m.m26, d26)
-                  const partial = s26data.dias < m.days && ult !== null
+                  const ult = lastDay(m.m26, d26)
+                  const s26full = calcMes(m.m26, d26)
+                  const partial = s26full.dias < m.days && ult !== null
                   const lim = partial ? ult! : undefined
                   const ms25 = calcMes(m.m25, d25, lim)
                   const ms26 = calcMes(m.m26, d26)
                   const pct = ms25.media > 0 ? (((ms26.media - ms25.media) / ms25.media) * 100) : null
                   const isPos = pct !== null && pct >= 0
                   return (
-                    <tr key={i} style={{ borderBottom: `1px solid ${s.border}` }}>
-                      <td style={{ fontFamily: 'system-ui', padding: '9px 12px', fontSize: '13px', color: s.text, fontWeight: '600', textAlign: 'left', whiteSpace: 'nowrap' }}>
-                        {m.label}{partial && ult ? <span style={{ fontSize: '10px', color: s.text3 }}> (hasta día {ult})</span> : ''}
+                    <tr key={i} style={{ borderBottom: `1px solid ${dark.border}` }}>
+                      <td style={{ padding: '9px 12px', fontSize: '13px', fontWeight: '600', color: dark.text, textAlign: 'left', whiteSpace: 'nowrap' }}>
+                        {m.label}{partial && ult ? <span style={{ fontSize: '10px', color: dark.text3, fontWeight: '400' }}> · hasta día {ult}</span> : ''}
                       </td>
-                      <td style={{ fontFamily: 'monospace', padding: '9px 12px', fontSize: '12px', color: s.text3, textAlign: 'right' }}>{ms25.dias}</td>
-                      <td style={{ fontFamily: 'monospace', padding: '9px 12px', fontSize: '12px', color: s.text2, textAlign: 'right' }}>{ms26.dias}</td>
-                      <td style={{ fontFamily: 'monospace', padding: '9px 12px', fontSize: '12px', color: s.text3, textAlign: 'right' }}>{fe(ms25.total).replace(' €', '')}</td>
-                      <td style={{ fontFamily: 'monospace', padding: '9px 12px', fontSize: '12px', color: s.text, textAlign: 'right' }}>{fe(ms26.total).replace(' €', '')}</td>
-                      <td style={{ fontFamily: 'monospace', padding: '9px 12px', fontSize: '12px', color: s.text3, textAlign: 'right' }}>{fe(ms25.media).replace(' €', '')}</td>
-                      <td style={{ fontFamily: 'monospace', padding: '9px 12px', fontSize: '12px', color: s.text, textAlign: 'right' }}>{fe(ms26.media).replace(' €', '')}</td>
-                      <td style={{ fontFamily: 'monospace', padding: '9px 12px', fontSize: '12px', fontWeight: '600', textAlign: 'right', color: pct !== null ? (isPos ? s.green : s.red) : s.text3 }}>
+                      <td style={{ padding: '9px 12px', fontFamily: 'monospace', fontSize: '12px', color: dark.text3, textAlign: 'right' }}>{ms25.dias}</td>
+                      <td style={{ padding: '9px 12px', fontFamily: 'monospace', fontSize: '12px', color: dark.text2, textAlign: 'right' }}>{ms26.dias}</td>
+                      <td style={{ padding: '9px 12px', fontFamily: 'monospace', fontSize: '12px', color: dark.text3, textAlign: 'right' }}>{ms25.total > 0 ? fe(ms25.total).replace(' €','') : '—'}</td>
+                      <td style={{ padding: '9px 12px', fontFamily: 'monospace', fontSize: '12px', color: dark.text, fontWeight: '600', textAlign: 'right' }}>{ms26.total > 0 ? fe(ms26.total).replace(' €','') : '—'}</td>
+                      <td style={{ padding: '9px 12px', fontFamily: 'monospace', fontSize: '12px', color: dark.text3, textAlign: 'right' }}>{ms25.media > 0 ? fe(ms25.media).replace(' €','') : '—'}</td>
+                      <td style={{ padding: '9px 12px', fontFamily: 'monospace', fontSize: '12px', color: dark.text, fontWeight: '600', textAlign: 'right' }}>{ms26.media > 0 ? fe(ms26.media).replace(' €','') : '—'}</td>
+                      <td style={{ padding: '9px 12px', fontFamily: 'monospace', fontSize: '12px', fontWeight: '700', textAlign: 'right', color: pct !== null ? (isPos ? dark.green : dark.red) : dark.text3 }}>
                         {pct !== null ? `${sgn(pct)}${pct.toFixed(1)}%` : '—'}
                       </td>
                     </tr>
                   )
                 })}
-                <tr style={{ background: s.bg3, borderTop: `1px solid ${s.border2}` }}>
-                  <td style={{ fontFamily: 'system-ui', padding: '9px 12px', fontSize: '13px', color: s.text, fontWeight: '700', textAlign: 'left' }}>TOTAL YTD</td>
-                  <td style={{ fontFamily: 'monospace', padding: '9px 12px', fontSize: '12px', color: s.text3, textAlign: 'right', fontWeight: '700' }}>{dias25}</td>
-                  <td style={{ fontFamily: 'monospace', padding: '9px 12px', fontSize: '12px', color: s.text2, textAlign: 'right', fontWeight: '700' }}>{dias26}</td>
-                  <td style={{ fontFamily: 'monospace', padding: '9px 12px', fontSize: '12px', color: s.text3, textAlign: 'right', fontWeight: '700' }}>{fe(ytd25).replace(' €', '')}</td>
-                  <td style={{ fontFamily: 'monospace', padding: '9px 12px', fontSize: '12px', color: s.text, textAlign: 'right', fontWeight: '700' }}>{fe(ytd26).replace(' €', '')}</td>
-                  <td style={{ fontFamily: 'monospace', padding: '9px 12px', fontSize: '12px', color: s.text3, textAlign: 'right', fontWeight: '700' }}>{fe(mTot25).replace(' €', '')}</td>
-                  <td style={{ fontFamily: 'monospace', padding: '9px 12px', fontSize: '12px', color: s.text, textAlign: 'right', fontWeight: '700' }}>{fe(mTot26).replace(' €', '')}</td>
-                  <td style={{ fontFamily: 'monospace', padding: '9px 12px', fontSize: '12px', fontWeight: '700', textAlign: 'right', color: posTotal ? s.green : s.red }}>
-                    {sgn(pctTotal)}{pctTotal.toFixed(1)}%
+                <tr style={{ background: dark.bg3, borderTop: `1px solid ${dark.border2}` }}>
+                  <td style={{ padding: '10px 12px', fontSize: '13px', fontWeight: '700', color: dark.text, textAlign: 'left' }}>TOTAL YTD</td>
+                  <td style={{ padding: '10px 12px', fontFamily: 'monospace', fontSize: '12px', color: dark.text3, textAlign: 'right', fontWeight: '700' }}>{dias25}</td>
+                  <td style={{ padding: '10px 12px', fontFamily: 'monospace', fontSize: '12px', color: dark.text2, textAlign: 'right', fontWeight: '700' }}>{dias26}</td>
+                  <td style={{ padding: '10px 12px', fontFamily: 'monospace', fontSize: '12px', color: dark.text3, textAlign: 'right', fontWeight: '700' }}>{fe(ytd25).replace(' €','')}</td>
+                  <td style={{ padding: '10px 12px', fontFamily: 'monospace', fontSize: '12px', color: dark.text, textAlign: 'right', fontWeight: '700' }}>{fe(ytd26).replace(' €','')}</td>
+                  <td style={{ padding: '10px 12px', fontFamily: 'monospace', fontSize: '12px', color: dark.text3, textAlign: 'right', fontWeight: '700' }}>{fe(mTot25).replace(' €','')}</td>
+                  <td style={{ padding: '10px 12px', fontFamily: 'monospace', fontSize: '12px', color: dark.text, textAlign: 'right', fontWeight: '700' }}>{fe(mTot26).replace(' €','')}</td>
+                  <td style={{ padding: '10px 12px', fontFamily: 'monospace', fontSize: '12px', fontWeight: '800', textAlign: 'right', color: posYTD ? dark.green : dark.red }}>
+                    {sgn(pctYTD)}{pctYTD.toFixed(1)}%
                   </td>
                 </tr>
               </tbody>
             </table>
           </div>
 
-          {/* Gráfico barras */}
-          <p style={{ fontFamily: 'monospace', fontSize: '9px', color: s.text3, letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '10px' }}>Media por día abierto — visual</p>
+          {/* Visual bars */}
+          <p style={{ fontFamily: 'monospace', fontSize: '9px', color: dark.text3, letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '14px' }}>Media por día abierto — visual</p>
           <div>
             {mesesConDatos.map((m, i) => {
-              const ult = ultimoDia(m.m26, d26)
-              const s26data = calcMes(m.m26, d26)
-              const partial = s26data.dias < m.days && ult !== null
+              const ult = lastDay(m.m26, d26)
+              const s26full = calcMes(m.m26, d26)
+              const partial = s26full.dias < m.days && ult !== null
               const lim = partial ? ult! : undefined
               const ms25 = calcMes(m.m25, d25, lim)
               const ms26 = calcMes(m.m26, d26)
               const pct = ms25.media > 0 ? (((ms26.media - ms25.media) / ms25.media) * 100) : null
               const isPos = pct !== null && pct >= 0
-              const maxMedia = 1400
-              const w25 = Math.round((ms25.media / maxMedia) * 100)
-              const w26 = Math.round((ms26.media / maxMedia) * 100)
+              const maxM = 1400
+              const w25 = Math.round((ms25.media / maxM) * 100)
+              const w26 = Math.round((ms26.media / maxM) * 100)
               return (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-                  <div style={{ fontFamily: 'system-ui', fontSize: '11px', fontWeight: '600', color: s.text2, width: '70px', flexShrink: 0 }}>{m.label}</div>
-                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px' }}>
+                  <span style={{ fontSize: '11px', fontWeight: '600', color: dark.text2, width: '76px', flexShrink: 0 }}>{m.label}</span>
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '3px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ fontFamily: 'monospace', fontSize: '9px', color: s.text3, width: '24px', flexShrink: 0 }}>2025</span>
-                      <div style={{ flex: 1, height: '16px', background: s.bg3, borderRadius: '2px', overflow: 'hidden' }}>
-                        <div style={{ height: '100%', width: `${w25}%`, background: s.bg4, borderRadius: '2px', display: 'flex', alignItems: 'center', paddingLeft: '6px' }}>
-                          <span style={{ fontFamily: 'monospace', fontSize: '9px', color: s.text3, whiteSpace: 'nowrap' }}>{Math.round(ms25.media)}€</span>
+                      <span style={{ fontFamily: 'monospace', fontSize: '9px', color: dark.text3, width: '26px' }}>2025</span>
+                      <div style={{ flex: 1, height: '14px', background: dark.bg4, borderRadius: '2px', overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${w25}%`, background: dark.bg4, borderLeft: `2px solid ${dark.text3}`, display: 'flex', alignItems: 'center', paddingLeft: '5px' }}>
+                          {ms25.media > 0 && <span style={{ fontFamily: 'monospace', fontSize: '8px', color: dark.text3, whiteSpace: 'nowrap' }}>{Math.round(ms25.media)}€</span>}
                         </div>
                       </div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ fontFamily: 'monospace', fontSize: '9px', color: s.text3, width: '24px', flexShrink: 0 }}>2026</span>
-                      <div style={{ flex: 1, height: '16px', background: s.bg3, borderRadius: '2px', overflow: 'hidden' }}>
-                        <div style={{ height: '100%', width: `${w26}%`, background: isPos ? s.grnDim : s.redDim, borderRadius: '2px', display: 'flex', alignItems: 'center', paddingLeft: '6px' }}>
-                          <span style={{ fontFamily: 'monospace', fontSize: '9px', color: 'rgba(255,255,255,0.6)', whiteSpace: 'nowrap' }}>{Math.round(ms26.media)}€</span>
+                      <span style={{ fontFamily: 'monospace', fontSize: '9px', color: dark.text3, width: '26px' }}>2026</span>
+                      <div style={{ flex: 1, height: '14px', background: dark.bg4, borderRadius: '2px', overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${w26}%`, background: isPos ? 'rgba(61,186,122,0.25)' : 'rgba(224,85,69,0.25)', borderLeft: `2px solid ${isPos ? dark.green : dark.red}`, display: 'flex', alignItems: 'center', paddingLeft: '5px', transition: 'width 0.5s ease' }}>
+                          {ms26.media > 0 && <span style={{ fontFamily: 'monospace', fontSize: '8px', color: isPos ? dark.green : dark.red, whiteSpace: 'nowrap' }}>{Math.round(ms26.media)}€</span>}
                         </div>
                       </div>
                     </div>
                   </div>
-                  <div style={{ fontFamily: 'monospace', fontSize: '11px', fontWeight: '500', width: '52px', textAlign: 'right', flexShrink: 0, color: pct !== null ? (isPos ? s.green : s.red) : s.text3 }}>
+                  <span style={{ fontFamily: 'monospace', fontSize: '11px', fontWeight: '700', width: '52px', textAlign: 'right', flexShrink: 0, color: pct !== null ? (isPos ? dark.green : dark.red) : dark.text3 }}>
                     {pct !== null ? `${sgn(pct)}${pct.toFixed(1)}%` : '—'}
-                  </div>
+                  </span>
                 </div>
               )
             })}
@@ -263,53 +278,43 @@ export default function ComparativaPage() {
         </div>
       )}
 
-      {/* DIARIO VIEW */}
+      {/* ══ DIARIO ══ */}
       {view === 'diario' && (
         <div>
-          {/* KPIs YTD */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '16px' }}>
-            <div style={{ background: s.bg2, border: `1px solid ${s.border}`, borderRadius: '8px', padding: '14px 12px' }}>
-              <div style={{ fontFamily: 'monospace', fontSize: '9px', color: s.text3, letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: '6px' }}>Total 2025</div>
-              <div style={{ fontFamily: 'system-ui', fontSize: '22px', fontWeight: '800', color: s.text2, letterSpacing: '-0.5px' }}>{fe(ytd25)}</div>
-              <div style={{ fontFamily: 'monospace', fontSize: '10px', color: s.text3, marginTop: '4px' }}>YTD acumulado</div>
-            </div>
-            <div style={{ background: s.bg2, border: `1px solid ${s.border}`, borderRadius: '8px', padding: '14px 12px' }}>
-              <div style={{ fontFamily: 'monospace', fontSize: '9px', color: s.text3, letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: '6px' }}>Total 2026</div>
-              <div style={{ fontFamily: 'system-ui', fontSize: '22px', fontWeight: '800', color: s.text, letterSpacing: '-0.5px' }}>{fe(ytd26)}</div>
-              <div style={{ fontFamily: 'monospace', fontSize: '10px', color: s.text3, marginTop: '4px' }}>YTD acumulado</div>
-            </div>
-            <div style={{ background: s.bg2, border: `1px solid ${s.border}`, borderRadius: '8px', padding: '14px 12px', gridColumn: '1 / -1' }}>
-              <div style={{ fontFamily: 'monospace', fontSize: '9px', color: s.text3, letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: '6px' }}>Variación YTD</div>
-              <div style={{ fontFamily: 'system-ui', fontSize: '22px', fontWeight: '800', letterSpacing: '-0.5px', color: posTotal ? s.green : s.red }}>
-                {sgn(pctTotal)}{pctTotal.toFixed(1)}%
+          {/* YTD KPIs */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '20px' }}>
+            {[
+              { label: 'Total 2025 YTD', val: fe(ytd25), color: dark.text2 },
+              { label: 'Total 2026 YTD', val: fe(ytd26), color: dark.text },
+              { label: 'Variación YTD', val: `${sgn(pctYTD)}${pctYTD.toFixed(1)}%`, color: posYTD ? dark.green : dark.red },
+            ].map((k, i) => (
+              <div key={i} style={{ background: dark.bg2, border: `1px solid ${dark.border}`, borderRadius: '8px', padding: '14px' }}>
+                <p style={{ fontFamily: 'monospace', fontSize: '9px', color: dark.text3, letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: '8px' }}>{k.label}</p>
+                <p style={{ fontSize: '20px', fontWeight: '700', color: k.color, letterSpacing: '-0.5px' }}>{k.val}</p>
               </div>
-              <div style={{ fontFamily: 'monospace', fontSize: '10px', color: s.text3, marginTop: '4px' }}>
-                {sgn(r2(ytd26 - ytd25))}{fe(r2(ytd26 - ytd25))}
-              </div>
-            </div>
+            ))}
           </div>
 
-          {/* Tabs meses */}
+          {/* Mes tabs */}
           <div style={{ display: 'flex', overflowX: 'auto', gap: '6px', marginBottom: '16px', paddingBottom: '2px', scrollbarWidth: 'none' }}>
             {mesesConDatos.map((m, i) => {
-              const ult = ultimoDia(m.m26, d26)
-              const s26data = calcMes(m.m26, d26)
-              const partial = s26data.dias < m.days && ult !== null
+              const s26 = calcMes(m.m26, d26)
+              const partial = s26.dias < m.days && lastDay(m.m26, d26) !== null
               return (
-                <button key={i} onClick={() => setActiveTab(i)}
-                  style={{ flexShrink: 0, padding: '7px 16px', fontFamily: 'inherit', fontSize: '12px', fontWeight: '600', color: activeTab === i ? 'white' : s.text3, cursor: 'pointer', background: activeTab === i ? s.red : s.bg2, border: `1px solid ${activeTab === i ? s.red : s.border}`, borderRadius: '20px', whiteSpace: 'nowrap' }}>
-                  {m.label}{partial ? ' •' : ''}
+                <button key={i} onClick={() => setTab(i)}
+                  style={{ flexShrink: 0, padding: '7px 16px', fontFamily: 'inherit', fontSize: '12px', fontWeight: '600', cursor: 'pointer', background: tab === i ? dark.red : dark.bg2, color: tab === i ? 'white' : dark.text3, border: `1px solid ${tab === i ? dark.red : dark.border}`, borderRadius: '20px', whiteSpace: 'nowrap', transition: 'all 0.15s' }}>
+                  {m.label}{partial ? <span style={{ display: 'inline-block', width: '5px', height: '5px', borderRadius: '50%', background: dark.gold, marginLeft: '5px', verticalAlign: 'middle' }} /> : ''}
                 </button>
               )
             })}
           </div>
 
-          {/* Panel mes activo */}
-          {mesesConDatos[activeTab] && (() => {
-            const m = mesesConDatos[activeTab]
-            const ult = ultimoDia(m.m26, d26)
-            const s26data = calcMes(m.m26, d26)
-            const partial = s26data.dias < m.days && ult !== null
+          {/* Mes activo */}
+          {mesesConDatos[tab] && (() => {
+            const m = mesesConDatos[tab]
+            const ult = lastDay(m.m26, d26)
+            const s26full = calcMes(m.m26, d26)
+            const partial = s26full.dias < m.days && ult !== null
             const lim = partial ? ult! : undefined
             const ms25 = calcMes(m.m25, d25, lim)
             const ms26 = calcMes(m.m26, d26)
@@ -317,10 +322,7 @@ export default function ComparativaPage() {
             const isPos = diff >= 0
             const pct = ms25.total > 0 ? (((ms26.total - ms25.total) / ms25.total) * 100) : null
             const maxV = Math.max(ms25.total, ms26.total, 1)
-            const w25 = Math.round((ms25.total / maxV) * 100)
-            const w26 = Math.round((ms26.total / maxV) * 100)
 
-            // Filas diarias
             const rows = []
             for (let d = 1; d <= m.days; d++) {
               const dd = String(d).padStart(2, '0')
@@ -328,94 +330,86 @@ export default function ComparativaPage() {
               const k26 = `${m.m26}-${dd}`
               const v25 = d25[k25] ?? null
               const v26 = d26[k26] ?? null
-              if (!v25 && !v26) continue
-              const dow25 = DOW[new Date(k25 + 'T12:00:00').getDay()]
-              const dow26 = DOW[new Date(k26 + 'T12:00:00').getDay()]
+              if (v25 === null && v26 === null) continue
               const isToday = k26 === today
-              let dv: number | null = null
-              let pv: number | null = null
+              let dv: number | null = null, pv: number | null = null
               if (v25 !== null && v26 !== null) { dv = r2(v26 - v25); pv = (dv / v25) * 100 }
-              rows.push({ d, dd, k25, k26, v25, v26, dow25, dow26, isToday, dv, pv })
+              rows.push({ d, dd, k25, k26, v25, v26, dow25: DOW[new Date(k25 + 'T12:00:00').getDay()], dow26: DOW[new Date(k26 + 'T12:00:00').getDay()], isToday, dv, pv })
             }
 
             return (
               <div>
-                <div style={{ background: s.bg2, border: `1px solid ${s.border}`, borderRadius: '8px', padding: '14px', marginBottom: '14px' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
-                    <div>
-                      <div style={{ fontFamily: 'monospace', fontSize: '9px', color: s.text3, letterSpacing: '0.6px', textTransform: 'uppercase', marginBottom: '4px' }}>2025 · {m.label}</div>
-                      <div style={{ fontFamily: 'system-ui', fontSize: '22px', fontWeight: '800', color: s.text2, letterSpacing: '-0.5px' }}>{fe(ms25.total)}</div>
-                      <div style={{ fontFamily: 'monospace', fontSize: '10px', color: s.text3, marginTop: '3px' }}>{ms25.dias} días · {fe(ms25.media)}/día</div>
-                    </div>
-                    <div>
-                      <div style={{ fontFamily: 'monospace', fontSize: '9px', color: s.text3, letterSpacing: '0.6px', textTransform: 'uppercase', marginBottom: '4px' }}>
-                        2026 · {m.label}{partial && ult ? <span style={{ fontSize: '9px', color: s.gold }}> (hasta día {ult})</span> : ''}
+                {/* Resumen mes */}
+                <div style={{ background: dark.bg2, border: `1px solid ${dark.border}`, borderRadius: '8px', padding: '16px', marginBottom: '14px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
+                    {[
+                      { year: '2025', label: ms25.dias + ' días · ' + fe(ms25.media) + '/día', val: fe(ms25.total), dim: true },
+                      { year: '2026', label: ms26.dias + ' días · ' + fe(ms26.media) + '/día' + (partial && ult ? ` · hasta día ${ult}` : ''), val: fe(ms26.total), dim: false },
+                    ].map(k => (
+                      <div key={k.year}>
+                        <p style={{ fontFamily: 'monospace', fontSize: '9px', color: dark.text3, letterSpacing: '0.6px', textTransform: 'uppercase', marginBottom: '5px' }}>{k.year} · {m.label}</p>
+                        <p style={{ fontSize: '22px', fontWeight: '800', color: k.dim ? dark.text2 : dark.text, letterSpacing: '-0.5px' }}>{k.val}</p>
+                        <p style={{ fontFamily: 'monospace', fontSize: '10px', color: dark.text3, marginTop: '3px' }}>{k.label}</p>
                       </div>
-                      <div style={{ fontFamily: 'system-ui', fontSize: '22px', fontWeight: '800', color: s.text, letterSpacing: '-0.5px' }}>{fe(ms26.total)}</div>
-                      <div style={{ fontFamily: 'monospace', fontSize: '10px', color: s.text3, marginTop: '3px' }}>{ms26.dias} días · {fe(ms26.media)}/día</div>
-                    </div>
+                    ))}
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '12px', alignItems: 'center' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontFamily: 'monospace', fontSize: '9px', color: s.text3, width: '26px', flexShrink: 0 }}>2025</span>
-                        <div style={{ flex: 1, height: '10px', background: s.bg4, borderRadius: '2px', overflow: 'hidden' }}>
-                          <div style={{ height: '100%', width: `${w25}%`, background: s.text3, borderRadius: '2px' }} />
+                      {[{ year: '2025', val: ms25.total }, { year: '2026', val: ms26.total }].map(b => (
+                        <div key={b.year} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontFamily: 'monospace', fontSize: '9px', color: dark.text3, width: '26px' }}>{b.year}</span>
+                          <div style={{ flex: 1, height: '8px', background: dark.bg4, borderRadius: '2px', overflow: 'hidden' }}>
+                            <div style={{ height: '100%', width: `${Math.round((b.val / maxV) * 100)}%`, background: dark.text3, borderRadius: '2px' }} />
+                          </div>
                         </div>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontFamily: 'monospace', fontSize: '9px', color: s.text3, width: '26px', flexShrink: 0 }}>2026</span>
-                        <div style={{ flex: 1, height: '10px', background: s.bg4, borderRadius: '2px', overflow: 'hidden' }}>
-                          <div style={{ height: '100%', width: `${w26}%`, background: s.text2, borderRadius: '2px' }} />
-                        </div>
-                      </div>
+                      ))}
                     </div>
-                    <div style={{ padding: '10px 12px', textAlign: 'center', minWidth: '80px', borderRadius: '6px', border: `1px solid ${isPos ? s.grnDim : s.redDim}`, background: isPos ? s.grnBg : s.redBg }}>
-                      <div style={{ fontFamily: 'system-ui', fontSize: '18px', fontWeight: '800', lineHeight: 1, color: isPos ? s.green : s.red }}>{pct !== null ? `${sgn(pct)}${pct.toFixed(1)}%` : '—'}</div>
-                      <div style={{ fontFamily: 'monospace', fontSize: '10px', marginTop: '3px', color: isPos ? s.green : s.red }}>{sgn(diff)}{fe(diff)}</div>
+                    <div style={{ padding: '10px 14px', textAlign: 'center', minWidth: '88px', borderRadius: '6px', border: `1px solid ${isPos ? dark.gBorder : dark.rBorder}`, background: isPos ? dark.gBg : dark.rBg }}>
+                      <p style={{ fontSize: '18px', fontWeight: '800', color: isPos ? dark.green : dark.red, lineHeight: 1 }}>{pct !== null ? `${sgn(pct)}${pct.toFixed(1)}%` : '—'}</p>
+                      <p style={{ fontFamily: 'monospace', fontSize: '10px', color: isPos ? dark.green : dark.red, marginTop: '3px' }}>{sgn(diff)}{fe(diff)}</p>
                     </div>
                   </div>
                 </div>
 
                 {/* Tabla diaria */}
-                <div style={{ fontFamily: 'monospace', fontSize: '9px', color: s.text3, letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '8px' }}>Detalle diario</div>
-                <div style={{ border: `1px solid ${s.border}`, borderRadius: '8px', overflow: 'hidden', overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '380px' }}>
+                <div style={{ fontFamily: 'monospace', fontSize: '9px', color: dark.text3, letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '8px' }}>Detalle diario</div>
+                <div style={{ border: `1px solid ${dark.border}`, borderRadius: '8px', overflow: 'hidden', overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '400px' }}>
                     <thead>
-                      <tr style={{ background: s.bg3 }}>
+                      <tr style={{ background: dark.bg3 }}>
                         {['Día 25', 'Caja 25', 'Día 26', 'Caja 26', 'Dif.', 'Var.'].map((h, i) => (
-                          <th key={h} style={{ fontFamily: 'monospace', fontSize: '9px', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.6px', color: s.text3, padding: '9px 10px', textAlign: i > 1 ? 'right' : 'left', borderBottom: `1px solid ${s.border}`, whiteSpace: 'nowrap' }}>{h}</th>
+                          <th key={h} style={{ fontFamily: 'monospace', fontSize: '9px', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.6px', color: dark.text3, padding: '9px 10px', textAlign: i < 2 ? 'left' : 'right', borderBottom: `1px solid ${dark.border}`, whiteSpace: 'nowrap' }}>{h}</th>
                         ))}
                       </tr>
                     </thead>
                     <tbody>
                       {rows.map((row, i) => (
-                        <tr key={i} style={{ background: row.isToday ? 'rgba(240,180,41,.05)' : 'transparent', borderBottom: `1px solid ${s.border}` }}>
-                          <td style={{ padding: '7px 10px', fontSize: '12px', color: s.text2 }}><span style={{ color: s.text3, fontSize: '10px', marginRight: '4px', fontFamily: 'monospace' }}>{row.d}</span>{row.dow25}</td>
-                          <td style={{ padding: '7px 10px', fontFamily: 'monospace', fontSize: '12px', color: s.text3, textAlign: 'right' }}>{row.v25 !== null ? row.v25.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : <span style={{ fontStyle: 'italic', fontSize: '11px' }}>—</span>}</td>
-                          <td style={{ padding: '7px 10px', fontSize: '12px', color: s.text2 }}><span style={{ color: s.text3, fontSize: '10px', marginRight: '4px', fontFamily: 'monospace' }}>{row.d}</span>{row.dow26}</td>
-                          <td style={{ padding: '7px 10px', fontFamily: 'monospace', fontSize: '12px', color: s.text, fontWeight: '600', textAlign: 'right' }}>{row.v26 !== null ? row.v26.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : <span style={{ color: s.text3, fontStyle: 'italic', fontSize: '11px' }}>—</span>}</td>
-                          <td style={{ padding: '7px 10px', fontFamily: 'monospace', fontSize: '12px', textAlign: 'right', color: row.dv !== null ? (row.dv >= 0 ? s.green : s.red) : s.text3, fontWeight: row.dv !== null ? '600' : '400' }}>
-                            {row.dv !== null ? `${sgn(row.dv)}${row.dv.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
+                        <tr key={i} style={{ background: row.isToday ? `rgba(200,150,62,0.06)` : 'transparent', borderBottom: `1px solid ${dark.border}` }}>
+                          <td style={{ padding: '7px 10px', fontSize: '12px', color: dark.text2 }}><span style={{ color: dark.text3, fontSize: '10px', marginRight: '5px', fontFamily: 'monospace' }}>{row.d}</span>{row.dow25}</td>
+                          <td style={{ padding: '7px 10px', fontFamily: 'monospace', fontSize: '12px', color: dark.text3, textAlign: 'right' }}>{row.v25 !== null ? f2(row.v25) : <span style={{ fontStyle: 'italic', fontSize: '10px' }}>—</span>}</td>
+                          <td style={{ padding: '7px 10px', fontSize: '12px', color: dark.text2 }}><span style={{ color: dark.text3, fontSize: '10px', marginRight: '5px', fontFamily: 'monospace' }}>{row.d}</span>{row.dow26}</td>
+                          <td style={{ padding: '7px 10px', fontFamily: 'monospace', fontSize: '12px', color: dark.text, fontWeight: '600', textAlign: 'right' }}>{row.v26 !== null ? f2(row.v26) : <span style={{ color: dark.text3, fontStyle: 'italic', fontSize: '10px' }}>—</span>}</td>
+                          <td style={{ padding: '7px 10px', fontFamily: 'monospace', fontSize: '12px', textAlign: 'right', color: row.dv !== null ? (row.dv >= 0 ? dark.green : dark.red) : dark.text3, fontWeight: row.dv !== null ? '600' : '400' }}>
+                            {row.dv !== null ? `${sgn(row.dv)}${f2(row.dv)}` : '—'}
                           </td>
                           <td style={{ padding: '7px 10px', textAlign: 'right' }}>
                             {row.pv !== null ? (
-                              <span style={{ display: 'inline-block', fontFamily: 'monospace', fontSize: '10px', fontWeight: '500', padding: '2px 6px', borderRadius: '3px', background: row.pv >= 0 ? s.grnBg : s.redBg, color: row.pv >= 0 ? s.green : s.red, border: `1px solid ${row.pv >= 0 ? s.grnDim : s.redDim}` }}>
+                              <span style={{ display: 'inline-flex', fontFamily: 'monospace', fontSize: '10px', fontWeight: '600', padding: '2px 6px', borderRadius: '3px', background: row.pv >= 0 ? dark.gBg : dark.rBg, color: row.pv >= 0 ? dark.green : dark.red, border: `1px solid ${row.pv >= 0 ? dark.gBorder : dark.rBorder}` }}>
                                 {sgn(row.pv)}{row.pv.toFixed(1)}%
                               </span>
-                            ) : <span style={{ color: s.text3, fontStyle: 'italic', fontSize: '11px', fontFamily: 'monospace' }}>—</span>}
+                            ) : <span style={{ color: dark.text3, fontStyle: 'italic', fontSize: '10px', fontFamily: 'monospace' }}>—</span>}
                           </td>
                         </tr>
                       ))}
                     </tbody>
                     <tfoot>
-                      <tr style={{ background: s.bg3, borderTop: `1px solid ${s.border2}` }}>
-                        <td style={{ padding: '9px 10px', fontWeight: '700', fontSize: '12px', color: s.text }}><strong>TOTAL</strong></td>
-                        <td style={{ padding: '9px 10px', fontFamily: 'monospace', fontSize: '12px', color: s.text3, textAlign: 'right', fontWeight: '700' }}>{fe(ms25.total)}</td>
+                      <tr style={{ background: dark.bg3, borderTop: `1px solid ${dark.border2}` }}>
+                        <td style={{ padding: '9px 10px', fontWeight: '700', fontSize: '12px', color: dark.text }}>TOTAL</td>
+                        <td style={{ padding: '9px 10px', fontFamily: 'monospace', fontSize: '12px', color: dark.text3, textAlign: 'right', fontWeight: '700' }}>{fe(ms25.total)}</td>
                         <td></td>
-                        <td style={{ padding: '9px 10px', fontFamily: 'monospace', fontSize: '12px', color: s.text, textAlign: 'right', fontWeight: '700' }}>{fe(ms26.total)}</td>
-                        <td style={{ padding: '9px 10px', fontFamily: 'monospace', fontSize: '12px', textAlign: 'right', fontWeight: '700', color: isPos ? s.green : s.red }}>{sgn(diff)}{fe(diff)}</td>
-                        <td style={{ padding: '9px 10px', fontFamily: 'monospace', fontSize: '12px', textAlign: 'right', fontWeight: '700', color: isPos ? s.green : s.red }}>{pct !== null ? `${sgn(pct)}${pct.toFixed(1)}%` : '—'}</td>
+                        <td style={{ padding: '9px 10px', fontFamily: 'monospace', fontSize: '12px', color: dark.text, textAlign: 'right', fontWeight: '700' }}>{fe(ms26.total)}</td>
+                        <td style={{ padding: '9px 10px', fontFamily: 'monospace', fontSize: '12px', textAlign: 'right', fontWeight: '700', color: isPos ? dark.green : dark.red }}>{sgn(diff)}{fe(diff)}</td>
+                        <td style={{ padding: '9px 10px', fontFamily: 'monospace', fontSize: '12px', textAlign: 'right', fontWeight: '700', color: isPos ? dark.green : dark.red }}>{pct !== null ? `${sgn(pct)}${pct.toFixed(1)}%` : '—'}</td>
                       </tr>
                     </tfoot>
                   </table>
@@ -426,8 +420,8 @@ export default function ComparativaPage() {
         </div>
       )}
 
-      <div style={{ fontFamily: 'monospace', fontSize: '9px', color: s.text3, textAlign: 'center', marginTop: '24px', paddingTop: '16px', borderTop: `1px solid ${s.border}`, lineHeight: 2, letterSpacing: '0.3px' }}>
-        Datos: Supabase · Solo caja · Actualización en tiempo real
+      <div style={{ fontFamily: 'monospace', fontSize: '9px', color: dark.text3, textAlign: 'center', marginTop: '32px', paddingTop: '16px', borderTop: `1px solid ${dark.border}`, letterSpacing: '0.5px' }}>
+        Datos en tiempo real · Supabase · CHUORE Churros & More
       </div>
     </div>
   )

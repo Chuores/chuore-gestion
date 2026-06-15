@@ -1,10 +1,11 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Venta } from '@/types'
 
-function euro(n: number) { return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(n) }
-function fmtFecha(f: string) { return new Date(f + 'T00:00:00').toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' }) }
+const euro = (n: number) => new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(n)
+const fmtFecha = (f: string) => new Date(f + 'T00:00:00').toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })
+
+interface Venta { id: string; fecha: string; total: number; notas?: string }
 
 export default function VentasPage() {
   const [ventas, setVentas] = useState<Venta[]>([])
@@ -26,16 +27,8 @@ export default function VentasPage() {
 
   useEffect(() => { load() }, [mes])
 
-  function openNew() {
-    setEditing(null)
-    setForm({ fecha: new Date().toISOString().split('T')[0], total: '', notas: '' })
-    setShowForm(true)
-  }
-  function openEdit(v: Venta) {
-    setEditing(v)
-    setForm({ fecha: v.fecha, total: String(v.total), notas: v.notas || '' })
-    setShowForm(true)
-  }
+  function openNew() { setEditing(null); setForm({ fecha: new Date().toISOString().split('T')[0], total: '', notas: '' }); setShowForm(true) }
+  function openEdit(v: Venta) { setEditing(v); setForm({ fecha: v.fecha, total: String(v.total), notas: v.notas || '' }); setShowForm(true) }
 
   async function save() {
     if (!form.total) return
@@ -52,12 +45,12 @@ export default function VentasPage() {
     load()
   }
 
-  const totalMes = ventas.reduce((s, v) => s + v.total, 0)
-  const mediaDia = ventas.length > 0 ? totalMes / ventas.length : 0
-  const mejorDia = ventas.length > 0 ? Math.max(...ventas.map(v => v.total)) : 0
+  const totalMes = ventas.filter(v => !String(v.fecha).startsWith('2025')).reduce((s, v) => s + v.total, 0)
+  const ventasReales = ventas.filter(v => !String(v.fecha).startsWith('2025'))
+  const mediaDia = ventasReales.length > 0 ? totalMes / ventasReales.length : 0
+  const mejorDia = ventasReales.length > 0 ? Math.max(...ventasReales.map(v => v.total)) : 0
 
-  // Generar meses disponibles (últimos 12)
-  const mesesOpciones = Array.from({ length: 12 }, (_, i) => {
+  const mesesOpciones = Array.from({ length: 24 }, (_, i) => {
     const d = new Date(); d.setMonth(d.getMonth() - i)
     const val = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
     const label = d.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
@@ -66,106 +59,98 @@ export default function VentasPage() {
 
   return (
     <div className="fade-in" style={{ maxWidth: '800px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
+      <div className="page-header">
         <div>
-          <h1 style={{ fontFamily: 'Playfair Display, Georgia, serif', fontSize: '22px', fontWeight: '600', color: '#1F2937', marginBottom: '3px' }}>Ventas</h1>
-          <p style={{ fontSize: '12px', color: '#9CA3AF' }}>Registro diario del TPV</p>
+          <h1 className="page-title">Ventas</h1>
+          <p className="page-subtitle">Registro diario del TPV</p>
         </div>
         <button className="btn btn-primary" onClick={openNew}>+ Registrar venta</button>
       </div>
 
-      {/* Selector de mes */}
-      <div style={{ marginBottom: '20px' }}>
+      <div style={{ marginBottom: '16px' }}>
         <select value={mes} onChange={e => setMes(e.target.value)} className="input" style={{ maxWidth: '240px' }}>
           {mesesOpciones.map(m => <option key={m.val} value={m.val}>{m.label}</option>)}
         </select>
       </div>
 
-      {/* KPIs del mes */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '10px', marginBottom: '20px' }}>
         {[
           { label: 'Total del mes', value: euro(totalMes) },
           { label: 'Media por día', value: euro(mediaDia) },
           { label: 'Mejor día', value: euro(mejorDia) },
         ].map(k => (
-          <div key={k.label} className="card" style={{ padding: '14px 16px' }}>
-            <p style={{ fontSize: '11px', color: '#9CA3AF', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '6px' }}>{k.label}</p>
-            <p style={{ fontSize: '18px', fontWeight: '700', color: '#2C1810', fontVariantNumeric: 'tabular-nums' }}>{loading ? '—' : k.value}</p>
+          <div key={k.label} className="stat-card">
+            <p className="stat-label">{k.label}</p>
+            <p className="stat-value mono" style={{ fontSize: '18px', color: 'var(--c-brown)' }}>{loading ? '—' : k.value}</p>
           </div>
         ))}
       </div>
 
-      {/* Lista */}
       {loading ? (
-        <p style={{ fontSize: '13px', color: '#9CA3AF' }}>Cargando...</p>
+        <p style={{ fontSize: '13px', color: 'var(--c-text-4)' }}>Cargando...</p>
       ) : ventas.length === 0 ? (
-        <div className="card" style={{ padding: '48px', textAlign: 'center' }}>
-          <p style={{ fontSize: '14px', fontWeight: '500', color: '#1F2937', marginBottom: '4px' }}>Sin registros este mes</p>
-          <p style={{ fontSize: '12px', color: '#9CA3AF' }}>Registra la primera venta con el botón superior.</p>
+        <div className="card empty">
+          <p className="empty-title">Sin registros este mes</p>
+          <p className="empty-desc">Registra la primera venta con el botón superior.</p>
         </div>
       ) : (
-        <div className="card" style={{ overflow: 'hidden' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <div className="table-wrap">
+          <table className="table">
             <thead>
               <tr>
-                <th className="th">Fecha</th>
-                <th className="th">Total TPV</th>
-                <th className="th">Notas</th>
-                <th className="th"></th>
+                <th>Fecha</th>
+                <th className="r">Total TPV</th>
+                <th>Notas</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
               {ventas.map(v => (
-                <tr key={v.id} className="tr">
-                  <td className="td" style={{ fontWeight: '500' }}>{fmtFecha(v.fecha)}</td>
-                  <td className="td" style={{ fontWeight: '700', fontVariantNumeric: 'tabular-nums', color: '#15803D', fontSize: '14px' }}>{euro(v.total)}</td>
-                  <td className="td" style={{ color: '#9CA3AF', fontSize: '12px' }}>{v.notas || '—'}</td>
-                  <td className="td">
-                    <div style={{ display: 'flex', gap: '6px' }}>
-                      <button onClick={() => openEdit(v)} className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: '12px' }}>Editar</button>
-                      <button onClick={() => remove(v.id)} className="btn btn-danger" style={{ padding: '4px 10px', fontSize: '12px' }}>Eliminar</button>
+                <tr key={v.id}>
+                  <td style={{ fontWeight: '500', color: 'var(--c-text-1)' }}>{fmtFecha(String(v.fecha))}</td>
+                  <td className="r mono" style={{ fontWeight: '700', color: 'var(--c-green)', fontSize: '14px' }}>{euro(v.total)}</td>
+                  <td style={{ color: 'var(--c-text-4)', fontSize: '12px' }}>{v.notas || '—'}</td>
+                  <td>
+                    <div style={{ display: 'flex', gap: '5px' }}>
+                      <button onClick={() => openEdit(v)} className="btn btn-secondary btn-sm">Editar</button>
+                      <button onClick={() => remove(v.id)} className="btn btn-danger btn-sm">Eliminar</button>
                     </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-          <div style={{ padding: '12px 14px', borderTop: '1px solid #F3F4F6', display: 'flex', justifyContent: 'space-between', backgroundColor: '#FAFAFA' }}>
-            <span style={{ fontSize: '12px', color: '#6B7280', fontWeight: '600' }}>{ventas.length} días registrados</span>
-            <span style={{ fontSize: '13px', fontWeight: '700', color: '#2C1810', fontVariantNumeric: 'tabular-nums' }}>Total: {euro(totalMes)}</span>
+          <div style={{ padding: '10px 14px', borderTop: '1px solid var(--c-surface-3)', display: 'flex', justifyContent: 'space-between', background: 'var(--c-surface-2)' }}>
+            <span style={{ fontSize: '12px', color: 'var(--c-text-3)', fontWeight: '600' }}>{ventas.length} días registrados</span>
+            <span className="mono" style={{ fontSize: '13px', fontWeight: '700', color: 'var(--c-brown)' }}>Total: {euro(totalMes)}</span>
           </div>
         </div>
       )}
 
-      {/* Modal */}
       {showForm && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px', backgroundColor: 'rgba(0,0,0,0.4)' }}>
-          <div className="card" style={{ width: '100%', maxWidth: '380px', padding: '24px' }}>
-            <h2 style={{ fontSize: '15px', fontWeight: '600', color: '#1F2937', marginBottom: '18px' }}>
-              {editing ? 'Editar venta' : 'Registrar venta'}
-            </h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div className="modal-overlay">
+          <div className="modal" style={{ maxWidth: '380px' }}>
+            <div className="modal-header">
+              <p className="modal-title">{editing ? 'Editar venta' : 'Registrar venta'}</p>
+              <button onClick={() => setShowForm(false)} className="btn-ghost btn btn-sm">✕</button>
+            </div>
+            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div>
                 <label className="label">Fecha</label>
                 <input type="date" value={form.fecha} onChange={e => setForm({ ...form, fecha: e.target.value })} className="input" />
               </div>
               <div>
                 <label className="label">Total TPV (€)</label>
-                <input type="number" step="0.01" min="0" value={form.total}
-                  onChange={e => setForm({ ...form, total: e.target.value })}
-                  placeholder="0.00" className="input" autoFocus />
+                <input type="number" step="0.01" min="0" value={form.total} onChange={e => setForm({ ...form, total: e.target.value })} placeholder="0.00" className="input" autoFocus />
               </div>
               <div>
                 <label className="label">Notas (opcional)</label>
-                <input type="text" value={form.notas} onChange={e => setForm({ ...form, notas: e.target.value })}
-                  placeholder="Observaciones del día..." className="input" />
+                <input type="text" value={form.notas} onChange={e => setForm({ ...form, notas: e.target.value })} placeholder="Observaciones del día..." className="input" />
               </div>
             </div>
-            <div style={{ display: 'flex', gap: '8px', marginTop: '18px' }}>
-              <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowForm(false)}>Cancelar</button>
-              <button className="btn btn-primary" style={{ flex: 1 }} onClick={save} disabled={saving || !form.total}>
-                {saving ? 'Guardando...' : 'Guardar'}
-              </button>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => setShowForm(false)}>Cancelar</button>
+              <button className="btn btn-primary" onClick={save} disabled={saving || !form.total}>{saving ? 'Guardando...' : 'Guardar'}</button>
             </div>
           </div>
         </div>

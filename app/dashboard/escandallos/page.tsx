@@ -1,8 +1,4 @@
 'use client'
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-export default function Redirect() {
-  const router = useRouter()
-  useEffect(() => { router.push('/dashboard/escandallos/productos') }, [router])
-  return null
-}
+export default function R() { const r = useRouter(); useEffect(() => r.push('/dashboard/escandallos/productos'), [r]); return null }
