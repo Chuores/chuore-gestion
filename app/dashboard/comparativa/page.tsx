@@ -53,9 +53,9 @@ export default function ComparativaPage() {
       const map25: DayData = {}
       const map26: DayData = {}
       data.forEach(({ fecha, total }) => {
-        const day = fecha.slice(5) // MM-DD
-        if (fecha.startsWith('2025')) map25['2025-' + day] = total
-        if (fecha.startsWith('2026')) map26['2026-' + day] = total
+        const fechaStr = String(fecha).slice(0, 10)
+        if (fechaStr.startsWith('2025')) map25[fechaStr] = total
+        if (fechaStr.startsWith('2026')) map26[fechaStr] = total
       })
       setD25(map25)
       setD26(map26)
