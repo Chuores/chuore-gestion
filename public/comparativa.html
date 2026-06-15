@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>CHUORE Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800;900&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:       #0A0A0A;
+  --bg2:      #111111;
+  --bg3:      #1A1A1A;
+  --bg4:      #222222;
+  --border:   #2A2A2A;
+  --border2:  #333333;
+  --text:     #F0F0F0;
+  --text2:    #A0A0A0;
+  --text3:    #555555;
+  --red:      #E84040;
+  --red-dim:  #7A1A1A;
+  --red-bg:   #1E0808;
+  --green:    #2ECC71;
+  --grn-dim:  #1A6B3A;
+  --grn-bg:   #071A10;
+  --gold:     #F0B429;
+  --mono:     'DM Mono', monospace;
+  --sans:     'DM Sans', sans-serif;
+  --disp:     'Syne', sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body { font-family: var(--sans); background: var(--bg); color: var(--text); min-height: 100vh; font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+.app { max-width: 680px; margin: 0 auto; padding: 20px 14px 60px; }
+
+/* HEADER */
+.hdr { padding-bottom: 16px; margin-bottom: 20px; border-bottom: 1px solid var(--border2); }
+.hdr h1 { font-family: var(--disp); font-size: 32px; font-weight: 900; color: var(--red); letter-spacing: -1px; line-height: 1; text-transform: uppercase; }
+.hdr-sub { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; }
+.hdr-sub p { font-family: var(--mono); font-size: 11px; color: var(--text3); letter-spacing: .5px; text-transform: uppercase; }
+.badge-live { font-family: var(--mono); font-size: 9px; color: var(--gold); background: #1A1200; border: 1px solid #3A2A00; padding: 2px 7px; border-radius: 2px; letter-spacing: 1px; text-transform: uppercase; }
+
+/* NAV */
+.nav { display: flex; margin-bottom: 20px; background: var(--bg3); border-radius: 6px; padding: 3px; gap: 3px; }
+.ntab { flex: 1; padding: 9px 8px; font-family: var(--sans); font-size: 12px; font-weight: 600; cursor: pointer; background: none; border: none; color: var(--text3); border-radius: 4px; transition: all .2s; text-align: center; }
+.ntab.on { background: var(--bg4); color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,.4); }
+
+/* VIEWS */
+.view { display: none; }
+.view.on { display: block; }
+
+/* KPIs */
+.kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+.kpi { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 14px 12px 12px; }
+.kpi.full { grid-column: 1/-1; }
+.kpi-lbl { font-family: var(--mono); font-size: 9px; color: var(--text3); letter-spacing: .8px; text-transform: uppercase; margin-bottom: 6px; }
+.kpi-val { font-family: var(--disp); font-size: 22px; font-weight: 800; color: var(--text); letter-spacing: -.5px; line-height: 1; }
+.kpi-val.gr { color: var(--green); } .kpi-val.rd { color: var(--red); } .kpi-val.gy { color: var(--text2); }
+.kpi-sub { font-family: var(--mono); font-size: 10px; color: var(--text3); margin-top: 4px; }
+
+/* MONTH TABS */
+.tabs { display: flex; overflow-x: auto; gap: 6px; margin-bottom: 16px; padding-bottom: 2px; scrollbar-width: none; }
+.tabs::-webkit-scrollbar { display: none; }
+.tab { flex-shrink: 0; padding: 7px 16px; font-family: var(--sans); font-size: 12px; font-weight: 600; color: var(--text3); cursor: pointer; background: var(--bg2); border: 1px solid var(--border); border-radius: 20px; transition: all .15s; white-space: nowrap; }
+.tab.on { background: var(--red); color: #fff; border-color: var(--red); }
+.tab .dot { display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: var(--gold); margin-left: 5px; vertical-align: middle; margin-top: -2px; }
+.mpanel { display: none; }
+.mpanel.on { display: block; }
+
+/* MONTH SUMMARY */
+.msum { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 14px; margin-bottom: 14px; }
+.msum-top { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+.ms-lbl { font-family: var(--mono); font-size: 9px; color: var(--text3); letter-spacing: .6px; text-transform: uppercase; margin-bottom: 4px; }
+.ms-val { font-family: var(--disp); font-size: 22px; font-weight: 800; color: var(--text); letter-spacing: -.5px; }
+.ms-val.gy { color: var(--text2); }
+.ms-sub { font-family: var(--mono); font-size: 10px; color: var(--text3); margin-top: 3px; }
+.msum-bottom { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; }
+.bars { display: flex; flex-direction: column; gap: 5px; }
+.brow { display: flex; align-items: center; gap: 8px; }
+.blbl { font-family: var(--mono); font-size: 9px; color: var(--text3); width: 26px; flex-shrink: 0; }
+.btrack { flex: 1; height: 10px; background: var(--bg4); border-radius: 2px; overflow: hidden; }
+.bfill { height: 100%; border-radius: 2px; transition: width .5s ease; }
+.bfill.y25 { background: var(--text3); }
+.bfill.y26 { background: var(--text2); }
+.diffbox { padding: 10px 12px; text-align: center; min-width: 80px; border-radius: 6px; border: 1px solid; }
+.diffbox.pos { background: var(--grn-bg); border-color: var(--grn-dim); }
+.diffbox.neg { background: var(--red-bg); border-color: var(--red-dim); }
+.diffbox.par { background: var(--bg3); border-color: var(--border); }
+.dpct { font-family: var(--disp); font-size: 18px; font-weight: 800; line-height: 1; }
+.dabs { font-family: var(--mono); font-size: 10px; margin-top: 3px; }
+.diffbox.pos .dpct, .diffbox.pos .dabs { color: var(--green); }
+.diffbox.neg .dpct, .diffbox.neg .dabs { color: var(--red); }
+.diffbox.par .dpct, .diffbox.par .dabs { color: var(--text2); }
+
+/* STATS ROW */
+.stats-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; margin-bottom: 14px; }
+.stat { background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; padding: 9px 10px; }
+.stat-lbl { font-family: var(--mono); font-size: 9px; color: var(--text3); letter-spacing: .5px; text-transform: uppercase; margin-bottom: 3px; }
+.stat-val { font-family: var(--mono); font-size: 13px; font-weight: 500; color: var(--text); }
+.stat-val.gr { color: var(--green); } .stat-val.rd { color: var(--red); }
+
+/* LEGEND */
+.legend { display: flex; gap: 14px; margin-bottom: 8px; }
+.li { display: flex; align-items: center; gap: 5px; font-family: var(--mono); font-size: 10px; color: var(--text3); }
+.lsq { width: 8px; height: 8px; border-radius: 1px; }
+.lsq.y25 { background: var(--text3); } .lsq.y26 { background: var(--text2); }
+
+/* TABLE */
+.slbl { font-family: var(--mono); font-size: 9px; color: var(--text3); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
+.twrap { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; overflow-x: auto; }
+table.dt { width: 100%; border-collapse: collapse; min-width: 380px; }
+table.dt thead tr { background: var(--bg3); }
+table.dt th { font-family: var(--mono); font-size: 9px; font-weight: 500; text-transform: uppercase; letter-spacing: .6px; color: var(--text3); padding: 9px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+table.dt th.r { text-align: right; }
+table.dt td { padding: 7px 10px; border-bottom: 1px solid var(--border); font-size: 12px; color: var(--text2); vertical-align: middle; white-space: nowrap; }
+table.dt td.r { text-align: right; }
+table.dt tbody tr:last-child td { border-bottom: none; }
+table.dt tbody tr:active td { background: var(--bg3); }
+table.dt tr.tday td { background: rgba(240,180,41,.05); }
+table.dt tfoot td { background: var(--bg3); border-top: 1px solid var(--border2); font-weight: 700; font-size: 12px; color: var(--text); padding: 9px 10px; }
+.c25 { color: var(--text3) !important; font-family: var(--mono); font-size: 12px; }
+.c26 { color: var(--text) !important; font-family: var(--mono); font-size: 12px; font-weight: 600; }
+.pos { color: var(--green) !important; font-family: var(--mono); font-size: 12px; font-weight: 600; }
+.neg { color: var(--red) !important; font-family: var(--mono); font-size: 12px; font-weight: 600; }
+.na  { color: var(--text3) !important; font-family: var(--mono); font-size: 11px; font-style: italic; }
+.pill { display: inline-block; font-family: var(--mono); font-size: 10px; font-weight: 500; padding: 2px 6px; border-radius: 3px; }
+.pill.pos { background: var(--grn-bg); color: var(--green); border: 1px solid var(--grn-dim); }
+.pill.neg { background: var(--red-bg); color: var(--red); border: 1px solid var(--red-dim); }
+.pill.na  { background: var(--bg3); color: var(--text3); }
+.dn { color: var(--text3); font-size: 10px; margin-right: 4px; font-family: var(--mono); }
+
+/* ══ ANÁLISIS ══ */
+.trend-banner { border-radius: 8px; padding: 16px 14px; margin-bottom: 16px; border: 1px solid; display: flex; gap: 12px; align-items: flex-start; }
+.trend-banner.up { background: var(--grn-bg); border-color: var(--grn-dim); }
+.trend-banner.dn { background: var(--red-bg); border-color: var(--red-dim); }
+.trend-icon { font-size: 28px; flex-shrink: 0; line-height: 1; margin-top: 2px; }
+.trend-title { font-family: var(--disp); font-size: 16px; font-weight: 800; line-height: 1.2; margin-bottom: 6px; }
+.trend-banner.up .trend-title { color: var(--green); }
+.trend-banner.dn .trend-title { color: var(--red); }
+.trend-body { font-size: 12px; color: var(--text2); line-height: 1.7; }
+.trend-body strong { color: var(--text); }
+
+.akpis { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+.akpi { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+.akpi-lbl { font-family: var(--mono); font-size: 9px; color: var(--text3); letter-spacing: .7px; text-transform: uppercase; margin-bottom: 5px; }
+.akpi-val { font-family: var(--disp); font-size: 22px; font-weight: 800; color: var(--text); letter-spacing: -.5px; line-height: 1; }
+.akpi-val.gr { color: var(--green); } .akpi-val.rd { color: var(--red); } .akpi-val.gy { color: var(--text2); }
+.akpi-sub { font-family: var(--mono); font-size: 10px; color: var(--text3); margin-top: 4px; }
+.akpi-sub.gr { color: var(--green); }
+
+.note-box { background: var(--bg2); border: 1px solid var(--border2); border-left: 3px solid var(--gold); border-radius: 0 6px 6px 0; padding: 12px 14px; margin-bottom: 16px; font-size: 12px; color: var(--text2); line-height: 1.7; }
+.note-box strong { color: var(--text); }
+
+.section-title { font-family: var(--mono); font-size: 9px; color: var(--text3); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 10px; margin-top: 20px; }
+
+.atable-wrap { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; overflow-x: auto; margin-bottom: 16px; }
+.atable { width: 100%; border-collapse: collapse; min-width: 480px; }
+.atable thead tr { background: var(--bg3); }
+.atable thead th { font-family: var(--mono); font-size: 9px; font-weight: 500; text-transform: uppercase; letter-spacing: .6px; color: var(--text3); padding: 9px 12px; text-align: right; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.atable thead th:first-child { text-align: left; }
+.atable tbody tr { border-bottom: 1px solid var(--border); }
+.atable tbody tr:last-child { border-bottom: none; }
+.atable tbody tr.tr-tot td { background: var(--bg3); border-top: 1px solid var(--border2); font-weight: 700; }
+.atable td { font-family: var(--mono); padding: 9px 12px; font-size: 12px; color: var(--text2); text-align: right; white-space: nowrap; }
+.atable td:first-child { text-align: left; color: var(--text); font-family: var(--sans); font-weight: 600; font-size: 13px; }
+.agr { color: var(--green) !important; font-weight: 600; }
+.ard { color: var(--red) !important; font-weight: 600; }
+.agy { color: var(--text3) !important; }
+
+/* Chart */
+.chart-wrap { margin-bottom: 16px; }
+.crow { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.crow.total { padding-top: 12px; border-top: 1px solid var(--border2); margin-bottom: 0; }
+.clabel { font-family: var(--sans); font-size: 11px; font-weight: 600; color: var(--text2); width: 52px; flex-shrink: 0; }
+.cbars { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.cbar-row { display: flex; align-items: center; gap: 6px; }
+.cyear { font-family: var(--mono); font-size: 9px; color: var(--text3); width: 24px; flex-shrink: 0; }
+.ctrack { flex: 1; height: 16px; background: var(--bg3); border-radius: 2px; overflow: hidden; }
+.cfill { height: 100%; border-radius: 2px; display: flex; align-items: center; padding-left: 6px; font-family: var(--mono); font-size: 9px; color: rgba(255,255,255,.6); transition: width .6s ease; white-space: nowrap; }
+.cfill.y25 { background: var(--bg4); color: var(--text3); }
+.cfill.up   { background: var(--grn-dim); }
+.cfill.down { background: var(--red-dim); }
+.cpct { font-family: var(--mono); font-size: 11px; font-weight: 500; width: 52px; text-align: right; flex-shrink: 0; }
+
+/* FOOTER */
+.footer { font-family: var(--mono); font-size: 9px; color: var(--text3); text-align: center; margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border); line-height: 2; letter-spacing: .3px; }
+</style>
+</head>
+<body>
+<div class="app">
+
+<div class="hdr">
+  <h1>CHUORE<br>Dashboard</h1>
+  <div class="hdr-sub">
+    <p>2025 vs 2026 · Caja</p>
+    <span class="badge-live">● Junio en curso</span>
+  </div>
+</div>
+
+<div class="nav">
+  <button class="ntab on" onclick="showView('analisis',this)">📊 Análisis</button>
+  <button class="ntab" onclick="showView('dashboard',this)">📋 Diario</button>
+</div>
+
+<!-- ══ ANÁLISIS ══ -->
+<div class="view on" id="view-analisis">
+
+  <div class="trend-banner up">
+    <div class="trend-icon">📈</div>
+    <div>
+      <div class="trend-title">CRECIENDO +10,6%</div>
+      <div class="trend-body">
+        Cada día abierto en 2026 facturaste <strong>848 €</strong> de media, frente a <strong>767 €</strong> en 2025.<br>
+        <strong>+81 € más por día abierto.</strong> El único mes con caída real es Febrero (-3,2%).
+      </div>
+    </div>
+  </div>
+
+  <div class="akpis">
+    <div class="akpi">
+      <div class="akpi-lbl">Media diaria 2025</div>
+      <div class="akpi-val gy" id="aMedia25">767 €</div>
+      <div class="akpi-sub" id="aDias25">96 días</div>
+    </div>
+    <div class="akpi">
+      <div class="akpi-lbl">Media diaria 2026</div>
+      <div class="akpi-val" id="aMedia26">—</div>
+      <div class="akpi-sub" id="aDias26">—</div>
+    </div>
+    <div class="akpi">
+      <div class="akpi-lbl">Crecimiento real</div>
+      <div class="akpi-val gr" id="aCrecPct">—</div>
+      <div class="akpi-sub gr" id="aCrecAbs">—</div>
+    </div>
+    <div class="akpi">
+      <div class="akpi-lbl">YTD 2026 total</div>
+      <div class="akpi-val" id="aTotal26">—</div>
+      <div class="akpi-sub" id="aVsTotal25">—</div>
+    </div>
+  </div>
+
+  <div class="note-box">
+    <strong>⚠ Por qué los totales brutos y el crecimiento real difieren:</strong><br>
+    Los meses no tienen los mismos días abiertos entre 2025 y 2026 (festivos distintos, cierres). La métrica justa es la <strong>media por día abierto</strong>, que elimina ese efecto.
+  </div>
+
+  <div class="section-title">Comparativa mensual por días abiertos</div>
+  <div class="atable-wrap">
+    <table class="atable">
+      <thead>
+        <tr>
+          <th style="text-align:left">Mes</th>
+          <th>Días 25</th><th>Días 26</th>
+          <th>Total 25</th><th>Total 26</th>
+          <th>Media 25</th><th>Media 26</th>
+          <th>% real</th>
+        </tr>
+      </thead>
+      <tbody id="atabBody"></tbody>
+    </table>
+  </div>
+
+  <div class="section-title">Media por día abierto — visual</div>
+  <div class="chart-wrap" id="chartWrap"></div>
+
+</div>
+
+<!-- ══ DIARIO ══ -->
+<div class="view" id="view-dashboard">
+  <div class="kpis">
+    <div class="kpi">
+      <div class="kpi-lbl">Total 2025</div>
+      <div class="kpi-val gy" id="k25">—</div>
+      <div class="kpi-sub" id="k25s">—</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-lbl">Total 2026</div>
+      <div class="kpi-val" id="k26">—</div>
+      <div class="kpi-sub" id="k26s">—</div>
+    </div>
+    <div class="kpi full">
+      <div class="kpi-lbl">Variacion YTD</div>
+      <div class="kpi-val" id="kpct">—</div>
+      <div class="kpi-sub" id="kabs">—</div>
+    </div>
+  </div>
+
+  <div class="tabs" id="tabs"></div>
+  <div id="panels"></div>
+</div>
+
+<div class="footer">
+  Datos: Google Calendar · Solo caja · Último dato: 14 Junio 2026
+</div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════
+// DATOS — añadir nuevas fechas en d26 para actualizar
+// ═══════════════════════════════════════════════════
+const d25 = {
+  // ENERO
+  '2025-01-01':3590,'2025-01-03':937.52,'2025-01-04':1260,'2025-01-05':1095.09,
+  '2025-01-09':509.85,'2025-01-10':561,'2025-01-11':945,'2025-01-12':1101,
+  '2025-01-13':676,'2025-01-14':593,'2025-01-16':868.70,'2025-01-17':743,
+  '2025-01-18':1188.45,'2025-01-19':826.45,'2025-01-20':604.20,'2025-01-21':519,
+  '2025-01-23':704.37,'2025-01-24':550,'2025-01-25':904.50,'2025-01-26':395,
+  // FEBRERO
+  '2025-02-01':955,'2025-02-02':1227,'2025-02-03':760,'2025-02-04':654,
+  '2025-02-06':865,'2025-02-07':855,'2025-02-08':1088,'2025-02-09':950,
+  '2025-02-10':568,'2025-02-11':490,'2025-02-13':669,'2025-02-14':961.75,
+  '2025-02-15':916,'2025-02-16':1102,'2025-02-17':500,'2025-02-18':530,
+  '2025-02-20':590,'2025-02-21':491.50,'2025-02-22':982.50,'2025-02-23':1302.50,
+  '2025-02-24':375,'2025-02-25':593,'2025-02-27':614,'2025-02-28':718.50,
+  // MARZO
+  '2025-03-01':1040,'2025-03-02':1101,'2025-03-03':820,'2025-03-04':1110,
+  '2025-03-06':555,'2025-03-07':545,'2025-03-08':690,'2025-03-09':938.50,
+  '2025-03-10':449,'2025-03-11':500,'2025-03-13':730,'2025-03-14':768,
+  '2025-03-15':862,'2025-03-16':1190,'2025-03-17':480,'2025-03-18':510,
+  '2025-03-20':628.50,'2025-03-21':537.92,'2025-03-22':730,'2025-03-23':1261,
+  '2025-03-24':568.78,'2025-03-25':757,'2025-03-27':594,'2025-03-28':732,
+  '2025-03-29':972,'2025-03-30':961.50,'2025-03-31':305.60,
+  // ABRIL
+  '2025-04-01':465.59,'2025-04-03':623.50,'2025-04-04':585,'2025-04-05':979.19,
+  '2025-04-06':986.40,'2025-04-07':386.47,'2025-04-08':458,'2025-04-10':338,
+  '2025-04-11':627,'2025-04-12':667,'2025-04-13':989,'2025-04-14':621,
+  '2025-04-15':825,'2025-04-17':785.32,'2025-04-18':791,'2025-04-19':820,
+  '2025-04-20':765,'2025-04-21':606,'2025-04-22':568.95,'2025-04-24':405,
+  '2025-04-25':595,'2025-04-26':716.64,'2025-04-27':655,'2025-04-28':215,
+  '2025-04-29':472,
+  // MAYO
+  '2025-05-01':1055,'2025-05-02':817,'2025-05-03':912,'2025-05-04':1174,
+  '2025-05-05':700,'2025-05-06':706,'2025-05-08':690,'2025-05-09':695,
+  '2025-05-10':977.30,'2025-05-11':1219,'2025-05-12':794,'2025-05-13':722,
+  '2025-05-15':574.01,'2025-05-16':680,'2025-05-17':794,'2025-05-18':1082,
+  '2025-05-19':522.92,'2025-05-20':500,'2025-05-22':635,'2025-05-23':130.22,
+  '2025-05-24':720,'2025-05-25':916,'2025-05-26':790,'2025-05-27':548,
+  '2025-05-28':661,'2025-05-29':527.97,'2025-05-30':512.05,'2025-05-31':885,
+  // JUNIO 2025
+  '2025-06-01':1140,'2025-06-02':643,'2025-06-03':608.50,'2025-06-05':627.34,
+  '2025-06-06':624,'2025-06-07':976.95,'2025-06-08':680,'2025-06-09':320,
+  '2025-06-10':411,'2025-06-12':647,'2025-06-13':738,'2025-06-14':800,
+  '2025-06-15':772,'2025-06-16':358,'2025-06-17':314.50,'2025-06-19':428,
+  '2025-06-20':437,'2025-06-21':530,'2025-06-22':488,'2025-06-23':376,
+  '2025-06-24':574,'2025-06-26':492,'2025-06-27':408,'2025-06-30':395,
+};
+
+const d26 = {
+  // ENERO — 26.705 €
+  '2026-01-01':4357,'2026-01-03':1778,'2026-01-04':1636,'2026-01-05':2025,
+  '2026-01-06':1432,'2026-01-08':584,'2026-01-09':858,'2026-01-10':1181,
+  '2026-01-11':900,'2026-01-12':579,'2026-01-13':488,'2026-01-15':582,
+  '2026-01-16':757,'2026-01-17':1353,'2026-01-18':1258,'2026-01-19':620,
+  '2026-01-20':291,'2026-01-22':565,'2026-01-23':605,'2026-01-24':836,
+  '2026-01-25':1026,'2026-01-26':315,'2026-01-27':636,'2026-01-29':517,
+  '2026-01-30':537,'2026-01-31':984,
+  // FEBRERO — 18.162 €
+  '2026-02-01':979,'2026-02-02':526,'2026-02-03':622,'2026-02-05':705,
+  '2026-02-06':683,'2026-02-07':566,'2026-02-08':1033,'2026-02-09':535,
+  '2026-02-10':563,'2026-02-12':467,'2026-02-13':578,'2026-02-14':1020,
+  '2026-02-15':858,'2026-02-16':872,'2026-02-17':1240,'2026-02-19':662,
+  '2026-02-20':578,'2026-02-21':1064,'2026-02-22':1113,'2026-02-23':584,
+  '2026-02-24':554,'2026-02-26':582,'2026-02-27':697,'2026-02-28':1081,
+  // MARZO — 21.384 €
+  '2026-03-01':1103,'2026-03-02':513,'2026-03-03':660,'2026-03-05':646,
+  '2026-03-06':712,'2026-03-07':967,'2026-03-08':1162,'2026-03-09':615,
+  '2026-03-10':599,'2026-03-12':700,'2026-03-13':599,'2026-03-14':859,
+  '2026-03-15':1100,'2026-03-16':484,'2026-03-17':521,'2026-03-19':1101,
+  '2026-03-20':683,'2026-03-21':931,'2026-03-22':1051,'2026-03-23':535,
+  '2026-03-24':445,'2026-03-26':675,'2026-03-27':917,'2026-03-28':1120,
+  '2026-03-29':1222,'2026-03-30':781,'2026-03-31':683,
+  // ABRIL — 18.178 €
+  '2026-04-02':1320,'2026-04-03':1150,'2026-04-04':841,'2026-04-05':751,
+  '2026-04-06':637,'2026-04-07':265,'2026-04-09':624,'2026-04-10':487,
+  '2026-04-11':1006,'2026-04-12':1211,'2026-04-13':664,'2026-04-14':651,
+  '2026-04-16':684,'2026-04-17':782,'2026-04-18':709,'2026-04-19':781,
+  '2026-04-20':730,'2026-04-21':480,'2026-04-23':564,'2026-04-24':576,
+  '2026-04-25':680,'2026-04-26':893,'2026-04-27':563,'2026-04-28':505,
+  '2026-04-30':624,
+  // MAYO — añadir nuevos días aqui
+  '2026-05-01':1070,'2026-05-02':833,'2026-05-03':1075,'2026-05-04':718,
+  '2026-05-05':632,'2026-05-07':664,'2026-05-08':588,'2026-05-09':839,
+  '2026-05-10':1077,'2026-05-11':575,'2026-05-12':791,'2026-05-14':1420,
+  '2026-05-15':1175,'2026-05-16':1116,'2026-05-17':1495,'2026-05-18':803,
+  '2026-05-19':469,'2026-05-21':548,'2026-05-22':369,'2026-05-23':582,'2026-05-24':473,'2026-05-25':420,'2026-05-26':391,'2026-05-28':432,'2026-05-29':659,'2026-05-30':578,'2026-05-31':797,
+  // JUNIO 2026 — añadir nuevos días aqui
+  '2026-06-01':380,'2026-06-02':629,'2026-06-04':717,'2026-06-05':701,'2026-06-06':757,'2026-06-07':799,'2026-06-08':784,'2026-06-09':627,'2026-06-11':440,'2026-06-12':412.50,'2026-06-13':520,'2026-06-14':587,
+};
+
+const MONTHS = [
+  {label:'Enero',   y25:'2025-01', y26:'2026-01', days:31, partial:false},
+  {label:'Febrero', y25:'2025-02', y26:'2026-02', days:28, partial:false},
+  {label:'Marzo',   y25:'2025-03', y26:'2026-03', days:31, partial:false},
+  {label:'Abril',   y25:'2025-04', y26:'2026-04', days:30, partial:false},
+  {label:'Mayo',    y25:'2025-05', y26:'2026-05', days:31, partial:false},
+  {label:'Junio',   y25:'2025-06', y26:'2026-06', days:30, partial:true},
+];
+
+const DOW = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+const r2  = n => Math.round(n*100)/100;
+const fe  = n => n.toLocaleString('es-ES',{minimumFractionDigits:0,maximumFractionDigits:0})+' €';
+const fe2 = n => n.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';
+const fd  = n => n.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2});
+const sgn = n => n>=0?'+':'';
+
+// Calcular stats por mes. hastaDia limita la suma a ese dia (para comparar periodos equivalentes)
+function calcMes(prefix, data, hastaDia=null) {
+  let entries = Object.entries(data).filter(([k])=>k.startsWith(prefix));
+  if (hastaDia !== null) {
+    entries = entries.filter(([k]) => parseInt(k.slice(-2)) <= hastaDia);
+  }
+  const total = r2(entries.reduce((a,[,v])=>a+v,0));
+  const dias  = entries.length;
+  const media = dias>0 ? r2(total/dias) : 0;
+  return {total, dias, media};
+}
+
+// Ultimo dia con dato en 2026 para un mes
+function ultimoDia26(prefix) {
+  const keys = Object.keys(d26).filter(k=>k.startsWith(prefix));
+  if (!keys.length) return null;
+  return Math.max(...keys.map(k=>parseInt(k.slice(-2))));
+}
+
+function buildAnalisis() {
+  const tbody    = document.getElementById('atabBody');
+  const chartEl  = document.getElementById('chartWrap');
+  tbody.innerHTML = ''; chartEl.innerHTML = '';
+
+  let tot25=0, tot26=0, dias25=0, dias26=0;
+  const maxMedia = 1200; // referencia para barras
+
+  MONTHS.forEach(m => {
+    const ult  = ultimoDia26(m.y26);
+    const lim  = m.partial ? ult : null; // meses cerrados: sin limite; parciales: hasta ultimo dia 2026
+    const s25  = calcMes(m.y25, d25, lim);
+    const s26  = calcMes(m.y26, d26, null);
+    tot25  = r2(tot25+s25.total);  tot26  = r2(tot26+s26.total);
+    dias25 += s25.dias;            dias26 += s26.dias;
+
+    const pctMedia = s25.media>0 ? (((s26.media-s25.media)/s25.media)*100).toFixed(1) : null;
+    const isPos    = pctMedia && parseFloat(pctMedia)>=0;
+    const ps       = isPos?'+':'';
+    const parcial = m.partial && ult ? ` <span style="font-size:10px;color:var(--text3)">(hasta día ${ult})</span>` : '';
+
+    // Fila tabla
+    tbody.innerHTML += `<tr>
+      <td>${m.label}${parcial}</td>
+      <td>${s25.dias}</td><td>${s26.dias}</td>
+      <td class="agy">${fe(s25.total).replace(' €','')}</td>
+      <td>${fe(s26.total).replace(' €','')}</td>
+      <td class="agy">${fe(s25.media).replace(' €','')}</td>
+      <td>${fe(s26.media).replace(' €','')}</td>
+      <td class="${isPos?'agr':'ard'}">${pctMedia?ps+pctMedia+'%':'—'}</td>
+    </tr>`;
+
+    // Fila gráfico
+    const w25 = Math.round((s25.media/maxMedia)*100);
+    const w26 = Math.round((s26.media/maxMedia)*100);
+    const cls = isPos?'up':'down';
+    chartEl.innerHTML += `<div class="crow">
+      <div class="clabel">${m.label}</div>
+      <div class="cbars">
+        <div class="cbar-row"><span class="cyear">2025</span><div class="ctrack"><div class="cfill y25" style="width:${w25}%">${Math.round(s25.media)}€</div></div></div>
+        <div class="cbar-row"><span class="cyear">2026</span><div class="ctrack"><div class="cfill ${cls}" style="width:${w26}%">${Math.round(s26.media)}€</div></div></div>
+      </div>
+      <div class="cpct ${isPos?'agr':'ard'}">${pctMedia?ps+pctMedia+'%':'—'}</div>
+    </div>`;
+  });
+
+  // Fila total
+  const mTot25 = r2(tot25/dias25);
+  const mTot26 = r2(tot26/dias26);
+  const pctTot = (((mTot26-mTot25)/mTot25)*100).toFixed(1);
+  const posT   = parseFloat(pctTot)>=0;
+  tbody.innerHTML += `<tr class="tr-tot">
+    <td><strong>TOTAL YTD</strong></td>
+    <td><strong>${dias25}</strong></td><td><strong>${dias26}</strong></td>
+    <td class="agy"><strong>${fe(tot25).replace(' €','')}</strong></td>
+    <td><strong>${fe(tot26).replace(' €','')}</strong></td>
+    <td class="agy"><strong>${fe(mTot25).replace(' €','')}</strong></td>
+    <td><strong>${fe(mTot26).replace(' €','')}</strong></td>
+    <td class="${posT?'agr':'ard'}"><strong>${(posT?'+':'')+pctTot}%</strong></td>
+  </tr>`;
+
+  // Total barra YTD
+  const wT25 = Math.round((mTot25/maxMedia)*100);
+  const wT26 = Math.round((mTot26/maxMedia)*100);
+  chartEl.innerHTML += `<div class="crow total">
+    <div class="clabel" style="color:var(--text);font-weight:700">YTD</div>
+    <div class="cbars">
+      <div class="cbar-row"><span class="cyear" style="color:var(--text2)">2025</span><div class="ctrack" style="height:20px"><div class="cfill y25" style="width:${wT25}%;font-size:10px">${Math.round(mTot25)}€/día</div></div></div>
+      <div class="cbar-row"><span class="cyear" style="color:var(--text2)">2026</span><div class="ctrack" style="height:20px"><div class="cfill up" style="width:${wT26}%;font-size:10px">${Math.round(mTot26)}€/día</div></div></div>
+    </div>
+    <div class="cpct ${posT?'agr':'ard'}" style="font-size:13px;font-weight:800">${(posT?'+':'')+pctTot}%</div>
+  </div>`;
+
+  // KPIs análisis
+  document.getElementById('aMedia25').textContent = fe(mTot25);
+  document.getElementById('aDias25').textContent  = `${dias25} días`;
+  document.getElementById('aMedia26').textContent = fe(mTot26);
+  document.getElementById('aDias26').textContent  = `${dias26} días`;
+  const crecPct = (((mTot26-mTot25)/mTot25)*100).toFixed(1);
+  const crecAbs = r2(mTot26-mTot25);
+  document.getElementById('aCrecPct').textContent = (parseFloat(crecPct)>=0?'+':'')+crecPct+'%';
+  document.getElementById('aCrecPct').className   = 'akpi-val '+(parseFloat(crecPct)>=0?'gr':'rd');
+  document.getElementById('aCrecAbs').textContent = sgn(crecAbs)+fe(crecAbs)+'/día';
+  document.getElementById('aTotal26').textContent = fe(tot26);
+  const diffTot = r2(tot26-tot25);
+  document.getElementById('aVsTotal25').textContent = 'vs 2025: '+sgn(diffTot)+fe(diffTot);
+}
+
+function buildDashboard() {
+  const tabsEl   = document.getElementById('tabs');
+  const panelsEl = document.getElementById('panels');
+  tabsEl.innerHTML = ''; panelsEl.innerHTML = '';
+  const curTab = [...(document.querySelectorAll('.tab')||[])].findIndex(t=>t.classList.contains('on'));
+  const today  = new Date().toISOString().slice(0,10);
+  let ytd25=0, ytd26=0;
+
+  MONTHS.forEach((m,mi)=>{
+    let c25=0, c26=0;
+    const ult = ultimoDia26(m.y26); // ultimo dia con dato en 2026
+    const lim = m.partial ? ult : null; // en meses parciales, 2025 se limita al mismo dia
+    for(let d=1;d<=m.days;d++){
+      const dd=String(d).padStart(2,'0');
+      if(lim && d>lim) break; // no superar el ultimo dia de 2026
+      if(d25[`${m.y25}-${dd}`]) c25+=d25[`${m.y25}-${dd}`];
+      if(d26[`${m.y26}-${dd}`]) c26+=d26[`${m.y26}-${dd}`];
+    }
+    c25=r2(c25); c26=r2(c26);
+    ytd25=r2(ytd25+c25); ytd26=r2(ytd26+c26);
+
+    const diff  = r2(c26-c25);
+    const isPos = diff>=0;
+    const pct   = c25?(((c26-c25)/c25)*100).toFixed(1):null;
+    const maxV  = Math.max(c25,c26,1);
+    const w25   = Math.round((c25/maxV)*100);
+    const w26   = Math.round((c26/maxV)*100);
+    const bc    = m.partial?'par':(isPos?'pos':'neg');
+    const ps    = pct&&parseFloat(pct)>=0?'+':'';
+
+    const s25 = calcMes(m.y25, d25, lim);
+    const s26 = calcMes(m.y26, d26, null);
+
+    // TAB
+    const tab=document.createElement('button');
+    tab.className='tab'+(mi===0?' on':'');
+    tab.innerHTML=m.label+(m.partial?'<span class="dot"></span>':'');
+    tab.onclick=()=>goTab(mi);
+    tabsEl.appendChild(tab);
+
+    // FILAS
+    let rows='';
+    for(let d=1;d<=m.days;d++){
+      const dd  = String(d).padStart(2,'0');
+      const k25 = `${m.y25}-${dd}`;
+      const k26 = `${m.y26}-${dd}`;
+      const v25 = d25[k25]??null;
+      const v26 = d26[k26]??null;
+      if(!v25&&!v26) continue;
+      const dow25 = DOW[new Date(k25+'T12:00:00').getDay()];
+      const dow26 = DOW[new Date(k26+'T12:00:00').getDay()];
+      const isT   = k26===today;
+      let dTd=`<td class="r na">—</td>`, vTd=`<td class="r"><span class="pill na">—</span></td>`;
+      if(v25!==null&&v26!==null){
+        const dv=r2(v26-v25), pv=((dv/v25)*100).toFixed(1), pc=dv>=0?'pos':'neg';
+        dTd=`<td class="r ${pc}">${sgn(dv)}${fd(dv)}</td>`;
+        vTd=`<td class="r"><span class="pill ${pc}">${sgn(dv)}${pv}%</span></td>`;
+      } else if(!v25&&v26!==null){
+        dTd=`<td class="r pos">Nuevo</td>`; vTd=`<td class="r"><span class="pill pos">Nuevo</span></td>`;
+      } else if(v25&&!v26){
+        dTd=`<td class="r na">Sin dato</td>`;
+      }
+      rows+=`<tr class="${isT?'tday':''}">
+        <td><span class="dn">${d}</span>${dow25}</td>
+        <td class="r c25">${v25!==null?fd(v25):'<span class="na">—</span>'}</td>
+        <td><span class="dn">${d}</span>${dow26}</td>
+        <td class="r c26">${v26!==null?fd(v26):'<span class="na">—</span>'}</td>
+        ${dTd}${vTd}
+      </tr>`;
+    }
+
+    const panel=document.createElement('div');
+    panel.className='mpanel'+(mi===0?' on':'');
+    panel.innerHTML=`
+      <div class="msum">
+        <div class="msum-top">
+          <div>
+            <div class="ms-lbl">2025 · ${m.label}</div>
+            <div class="ms-val gy">${fe(c25)}</div>
+            <div class="ms-sub">${s25.dias} días · ${fe(s25.media)}/día</div>
+          </div>
+          <div>
+            <div class="ms-lbl">2026 · ${m.label}${m.partial&&ult?' <span style="font-size:9px;color:var(--gold)">(hasta día '+ult+')</span>':''}</div>
+            <div class="ms-val">${fe(c26)}</div>
+            <div class="ms-sub">${s26.dias} días · ${fe(s26.media)}/día</div>
+          </div>
+        </div>
+        <div class="msum-bottom">
+          <div class="bars">
+            <div class="brow"><span class="blbl">2025</span><div class="btrack"><div class="bfill y25" style="width:${w25}%"></div></div></div>
+            <div class="brow"><span class="blbl">2026</span><div class="btrack"><div class="bfill y26" style="width:${w26}%"></div></div></div>
+          </div>
+          <div class="diffbox ${bc}">
+            <div class="dpct">${pct?ps+pct+'%':'—'}</div>
+            <div class="dabs">${sgn(diff)}${fe(diff)}</div>
+          </div>
+        </div>
+      </div>
+      <div class="legend">
+        <div class="li"><div class="lsq y25"></div>2025${m.partial&&ult?' hasta día '+ult:''}</div>
+        <div class="li"><div class="lsq y26"></div>2026</div>
+      </div>
+      <div class="slbl">Detalle diario</div>
+      <div class="twrap"><table class="dt">
+        <thead><tr>
+          <th>Día 25</th><th class="r">Caja 25</th>
+          <th>Día 26</th><th class="r">Caja 26</th>
+          <th class="r">Dif.</th><th class="r">Var.</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr>
+          <td><strong>TOTAL</strong></td>
+          <td class="r c25"><strong>${fe(c25)}</strong></td>
+          <td></td>
+          <td class="r c26"><strong>${fe(c26)}</strong></td>
+          <td class="r ${isPos?'pos':'neg'}"><strong>${sgn(diff)}${fe(diff)}</strong></td>
+          <td class="r ${isPos?'pos':'neg'}"><strong>${pct?ps+pct+'%':'—'}</strong></td>
+        </tr></tfoot>
+      </table></div>`;
+    panelsEl.appendChild(panel);
+  });
+
+  // KPIs dashboard
+  const diff=r2(ytd26-ytd25), pos=diff>=0;
+  const pct=ytd25?(((ytd26-ytd25)/ytd25)*100).toFixed(1):null;
+  document.getElementById('k25').textContent = fe(ytd25);
+  document.getElementById('k25s').textContent = 'YTD enero–mayo 2025';
+  document.getElementById('k26').textContent = fe(ytd26);
+  document.getElementById('k26s').textContent = 'YTD enero–mayo 2026';
+  const kEl=document.getElementById('kpct');
+  kEl.className='kpi-val '+(pos?'gr':'rd');
+  kEl.textContent=pct?(pos?'+':'')+pct+'%':'—';
+  document.getElementById('kabs').textContent=sgn(diff)+fe(diff);
+  goTab(curTab>=0?curTab:0);
+}
+
+function showView(v,btn){
+  document.querySelectorAll('.view').forEach(el=>el.classList.remove('on'));
+  document.querySelectorAll('.ntab').forEach(el=>el.classList.remove('on'));
+  document.getElementById('view-'+v).classList.add('on');
+  btn.classList.add('on');
+  if(v==='dashboard') buildDashboard();
+}
+
+function goTab(idx){
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('on',i===idx));
+  document.querySelectorAll('.mpanel').forEach((p,i)=>p.classList.toggle('on',i===idx));
+}
+
+buildAnalisis();
+buildDashboard();
+</script>
+</body>
+</html>
