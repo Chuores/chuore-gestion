@@ -2,7 +2,7 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import Image from 'next/image'
+
 
 const NAV = [
   {
@@ -54,7 +54,7 @@ export default function Sidebar() {
       {/* Logo */}
       <div style={{ padding: '20px 16px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <Image src="/logo.png" alt="CHUORE" width={36} height={36} style={{ objectFit: 'contain', borderRadius: '6px' }} />
+          <img src="/logo.png" alt="CHUORE" style={{ width: '36px', height: '36px', objectFit: 'contain', borderRadius: '6px' }} />
           <div>
             <p style={{ fontSize: '9px', color: 'rgba(255,255,255,0.3)', letterSpacing: '0.12em', textTransform: 'uppercase', marginTop: '2px' }}>Panel de gestión</p>
           </div>

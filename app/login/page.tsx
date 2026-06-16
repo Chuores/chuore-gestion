@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
+
 
 export default function LoginPage() {
   const router = useRouter()
@@ -28,7 +28,7 @@ export default function LoginPage() {
         
         <div style={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '48px 44px' }}>
           <div style={{ display: 'flex', justifyContent: 'center' }}>
-            <Image src="/logo.png" alt="CHUORE" width={180} height={180} style={{ objectFit: 'contain' }} />
+            <img src="/logo.png" alt="CHUORE" style={{ width: '180px', height: '180px', objectFit: 'contain' }} />
           </div>
           
           <div>
