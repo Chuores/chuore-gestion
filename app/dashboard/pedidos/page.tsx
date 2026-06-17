@@ -113,18 +113,29 @@ export default function PedidosPage() {
 
   function generarMensaje() {
     if (!selectedProv || lineasValidas.length === 0) return ''
-    const hoy = new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
-    let msg = `🛒 *PEDIDO CHUORE*\n📅 ${hoy}\n`
-    if (fechaEntrega) msg += `🚚 Entrega: *${fechaEntrega}*\n`
-    msg += `\n`
+    const hoy = new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })
+    const sep = '─────────────────────────'
+    let msg = `PEDIDO CHUORE\n${hoy}\n`
+    if (fechaEntrega) msg += `\nEntrega solicitada: ${fechaEntrega}\n`
+    msg += `\n${sep}\n`
     lineasValidas.forEach(l => {
       const cod = l.producto.codigo ? `[${l.producto.codigo}] ` : ''
-      msg += `• ${cod}${l.producto.nombre}\n  → *${l.cantidad} ${l.producto.unidad_pedido}* (${l.producto.formato})`
-      if (l.observacion) msg += ` — _${l.observacion}_`
+      // Calcular total de unidades si es posible
+      const formatoMatch = l.producto.formato.match(/x\s*(\d+)/i)
+      const udsPorUnidad = formatoMatch ? parseInt(formatoMatch[1]) : null
+      const totalUds = udsPorUnidad ? l.cantidad * udsPorUnidad : null
+      msg += `${cod}${l.producto.nombre}\n`
+      if (totalUds) {
+        msg += `        ${l.cantidad} ${l.producto.unidad_pedido} x ${udsPorUnidad} uds = ${totalUds} uds\n`
+      } else {
+        msg += `        ${l.cantidad} ${l.producto.unidad_pedido}\n`
+      }
+      if (l.observacion) msg += `        Nota: ${l.observacion}\n`
       msg += `\n`
     })
-    if (notaGeneral) msg += `\n📝 *Nota:* ${notaGeneral}\n`
-    msg += `\n_CHUORE Churros & More · Santiago de Compostela_`
+    msg += `${sep}\n`
+    if (notaGeneral) msg += `\nObservaciones: ${notaGeneral}\n`
+    msg += `\nCHUORE Churros & More\nRua Senra, 20 · Santiago de Compostela`
     return msg
   }
 
