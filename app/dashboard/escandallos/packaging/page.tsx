@@ -73,7 +73,7 @@ export default function PackagingPage() {
           </h1>
           <p style={{ fontSize: '12px', color: '#9CA3AF' }}>{items.length} elementos registrados</p>
         </div>
-        <button className="btn-primary" onClick={openNew}>+ Nuevo packaging</button>
+        <button className="btn btn-primary" onClick={openNew}>+ Nuevo packaging</button>
       </div>
 
       {/* Filtros */}
@@ -170,8 +170,8 @@ export default function PackagingPage() {
               </div>
             </div>
             <div style={{ display: 'flex', gap: '8px', marginTop: '20px' }}>
-              <button className="btn-secondary" style={{ flex: 1 }} onClick={() => setShowForm(false)}>Cancelar</button>
-              <button className="btn-primary" style={{ flex: 1 }} onClick={save} disabled={saving || !form.nombre.trim()}>
+              <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowForm(false)}>Cancelar</button>
+              <button className="btn btn-primary" style={{ flex: 1 }} onClick={save} disabled={saving || !form.nombre.trim()}>
                 {saving ? 'Guardando...' : 'Guardar'}
               </button>
             </div>

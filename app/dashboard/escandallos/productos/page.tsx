@@ -109,7 +109,7 @@ export default function ProductosPage() {
           </h1>
           <p style={{ fontSize: '12px', color: '#9CA3AF' }}>{productos.length} productos — selecciona uno para ver el análisis completo</p>
         </div>
-        <button className="btn-primary" onClick={openNew}>+ Nuevo producto</button>
+        <button className="btn btn-primary" onClick={openNew}>+ Nuevo producto</button>
       </div>
 
       {/* Filtros */}
@@ -371,8 +371,8 @@ export default function ProductosPage() {
             </div>
 
             <div style={{ display: 'flex', gap: '8px' }}>
-              <button className="btn-secondary" style={{ flex: 1 }} onClick={() => setShowForm(false)}>Cancelar</button>
-              <button className="btn-primary" style={{ flex: 1 }} onClick={save} disabled={saving || !form.nombre.trim()}>
+              <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowForm(false)}>Cancelar</button>
+              <button className="btn btn-primary" style={{ flex: 1 }} onClick={save} disabled={saving || !form.nombre.trim()}>
                 {saving ? 'Guardando...' : 'Guardar producto'}
               </button>
             </div>
