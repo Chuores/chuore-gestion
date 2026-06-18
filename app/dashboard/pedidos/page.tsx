@@ -172,7 +172,7 @@ export default function PedidosPage() {
       {!selectedProv ? (
         <div>
           <p style={{ fontSize: '13px', color: 'var(--text-3)', marginBottom: '16px' }}>Selecciona el proveedor:</p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '10px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '10px' }}>
             {PROVEEDORES_CON_CATALOGO.map(prov => (
               <button key={prov.id} onClick={() => selectProveedor(prov)}
                 style={{ padding: '16px', borderRadius: '10px', border: '2px solid var(--border)', background: 'var(--surface)', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', transition: 'all 0.15s' }}
