@@ -104,9 +104,9 @@ export default function MateriasPrimasPage() {
                         <td style={{ fontWeight: '500', color: 'var(--text-1)' }}>{mp.nombre}</td>
                         <td style={{ color: 'var(--text-3)', fontSize: '12px' }}>{mp.unidad}</td>
                         <td style={{ color: 'var(--text-4)', fontSize: '12px' }}>{mp.proveedor ? (mp.proveedor as any).nombre : '—'}</td>
-                        <td className="r mono">{mp.precio_sin_iva.toFixed(4)} €</td>
+                        <td className="r mono">{mp.precio_sin_iva.toLocaleString("es-ES", { minimumFractionDigits: 4, maximumFractionDigits: 4 })} €</td>
                         <td className="r mono" style={{ color: 'var(--text-4)' }}>{mp.iva_compra}%</td>
-                        <td className="r mono" style={{ fontWeight: '600', color: 'var(--red)' }}>{mp.precio_con_iva.toFixed(4)} €</td>
+                        <td className="r mono" style={{ fontWeight: '600', color: 'var(--red)' }}>{mp.precio_con_iva.toLocaleString("es-ES", { minimumFractionDigits: 4, maximumFractionDigits: 4 })} €</td>
                         <td>
                           <div style={{ display: 'flex', gap: '4px' }}>
                             <button className="btn btn-secondary btn-sm" onClick={() => openEdit(mp)}>Editar</button>
