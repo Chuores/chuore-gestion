@@ -164,29 +164,29 @@ export default function PedidosPage() {
 
   function generarMensaje() {
     if (!selectedProv || lineasValidas.length === 0) return ''
-    const hoy = new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })
-    const sep = '─────────────────────────'
-    let msg = `PEDIDO CHUORE\n${hoy}\n`
-    if (fechaEntrega) msg += `\nEntrega solicitada: ${fechaEntrega}\n`
-    msg += `\n${sep}\n`
+    const hoy = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    const sep = '─────────────────────────────────────────────────────'
+    let msg = `CHUORE | ORDEN DE PEDIDO\n`
+    msg += `Fecha: ${hoy}   Proveedor: ${selectedProv.nombre}\n`
+    msg += `\n`
+    msg += `CÓDIGO    | PRODUCTO                        | CANTIDAD\n`
+    msg += `${sep}\n`
     lineasValidas.forEach(l => {
-      const cod = l.producto.codigo ? `[${l.producto.codigo}] ` : ''
-      // Calcular total de unidades si es posible
-      const formatoMatch = l.producto.formato.match(/x\s*(\d+)/i)
-      const udsPorUnidad = formatoMatch ? parseInt(formatoMatch[1]) : null
-      const totalUds = udsPorUnidad ? l.cantidad * udsPorUnidad : null
-      msg += `${cod}${l.producto.nombre}\n`
-      if (totalUds) {
-        msg += `        ${l.cantidad} ${l.producto.unidad_pedido} x ${udsPorUnidad} uds = ${totalUds} uds\n`
-      } else {
-        msg += `        ${l.cantidad} ${l.producto.unidad_pedido}\n`
-      }
-      if (l.observacion) msg += `        Nota: ${l.observacion}\n`
+      const codigo = (l.producto.codigo || '—').padEnd(9)
+      const nombre = l.producto.nombre.padEnd(32)
+      msg += `${codigo} | ${nombre} | ${l.cantidad} ${l.producto.unidad_pedido}`
+      if (l.observacion) msg += ` (${l.observacion})`
       msg += `\n`
     })
     msg += `${sep}\n`
-    if (notaGeneral) msg += `\nObservaciones: ${notaGeneral}\n`
-    msg += `\nCHUORE Churros & More\nRua Senra, 20 · Santiago de Compostela`
+    if (fechaEntrega) msg += `\nEntrega solicitada: ${fechaEntrega}\n`
+    if (notaGeneral) msg += `Observaciones: ${notaGeneral}\n`
+    msg += `\nSe ruega confirmación de recepción, disponibilidad de stock y fecha prevista de entrega.\n`
+    msg += `\nMuchas gracias por su atención.\n`
+    msg += `\nCHUORE GESTIÓN PEDIDOS PRO\n`
+    msg += `CHUORE (Churros & More) Rúa da Senra, 20\n`
+    msg += `15702 Santiago de Compostela (A Coruña)\n`
+    msg += `623 181 751 · chuoreglobalbrands@chuore.es`
     return msg
   }
 
