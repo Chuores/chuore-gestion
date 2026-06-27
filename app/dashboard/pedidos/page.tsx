@@ -165,29 +165,22 @@ export default function PedidosPage() {
   function generarMensaje() {
     if (!selectedProv || lineasValidas.length === 0) return ''
     const hoy = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
-    const sep = '─────────────────────────────────────────'
-    let msg = `*CHUORE | ORDEN DE PEDIDO*\n`
-    msg += `Fecha: ${hoy} · Proveedor: ${selectedProv.nombre}\n\n`
-    msg += `\`\`\`\n`
-    msg += `CÓDIGO    | PRODUCTO                    | CANT\n`
-    msg += `${sep}\n`
+    let msg = '*CHUORE | ORDEN DE PEDIDO*\n'
+    msg += `Fecha: ${hoy}\n`
+    msg += `Proveedor: ${selectedProv.nombre}\n\n`
     lineasValidas.forEach(l => {
-      const codigo = (l.producto.codigo || '—').padEnd(9)
-      const nombre = l.producto.nombre.substring(0, 28).padEnd(28)
-      const cant = `${l.cantidad} ${l.producto.unidad_pedido}`
-      msg += `${codigo} | ${nombre} | ${cant}`
-      if (l.observacion) msg += ` (${l.observacion})`
-      msg += `\n`
+      const codigo = l.producto.codigo ? `*[${l.producto.codigo}]*` : ''
+      msg += `${codigo} ${l.producto.nombre}\n`
+      msg += `\u2192 ${l.cantidad} ${l.producto.unidad_pedido}\n`
+      if (l.observacion) msg += `_Nota: ${l.observacion}_\n`
+      msg += '\n'
     })
-    msg += `\`\`\`\n`
-    if (fechaEntrega) msg += `\n_Entrega solicitada: ${fechaEntrega}_\n`
-    if (notaGeneral) msg += `_Obs: ${notaGeneral}_\n`
-    msg += `\nSe ruega confirmación de recepción, disponibilidad de stock y fecha prevista de entrega.\n`
-    msg += `\nMuchas gracias por su atención.\n`
-    msg += `\n*CHUORE GESTIÓN PEDIDOS PRO*\n`
-    msg += `CHUORE (Churros & More) Rúa da Senra, 20\n`
-    msg += `15702 Santiago de Compostela (A Coruña)\n`
-    msg += `623 181 751 · chuoreglobalbrands@chuore.es`
+    if (fechaEntrega) msg += `_Entrega: ${fechaEntrega}_\n\n`
+    if (notaGeneral) msg += `_Obs: ${notaGeneral}_\n\n`
+    msg += 'Se ruega confirmación de recepción, disponibilidad de stock y fecha prevista de entrega.\n\n'
+    msg += 'Muchas gracias por su atención.\n\n'
+    msg += '*CHUORE \u00b7 623 181 751*\n'
+    msg += 'chuoreglobalbrands@chuore.es'
     return msg
   }
 
