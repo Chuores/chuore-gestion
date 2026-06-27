@@ -74,9 +74,13 @@ const CATALOGOS: Record<string, ProductoPedido[]> = {
     { id: 'fm15', codigo: '1.KN0100PB', nombre: 'Servilletero con Porta Carta', formato: 'Unidad', unidad_pedido: 'uds', precio_unidad: 10.65, iva: 21 },
   ],
   'PuroKoffee': [
-    { id: 'pk1', codigo: '800368', nombre: 'Cápsula Rotondo Blue', formato: '100 uds', unidad_pedido: 'x100', precio_unidad: 32.20, iva: 21 },
-    { id: 'pk2', codigo: '3200', nombre: 'Blue Trastevere Roma X2', formato: '100 uds', unidad_pedido: 'x100', precio_unidad: 51.10, iva: 21 },
-    { id: 'pk3', codigo: '800320', nombre: 'Cápsula Descafeinado Blue', formato: '100 uds', unidad_pedido: 'x100', precio_unidad: 32.20, iva: 21 },
+    { id: 'pk1', codigo: '800368', nombre: 'Capsula Rotondo Blue', formato: 'Capsula x 1 ud', unidad_pedido: 'capsulas', precio_unidad: 0.46, iva: 10 },
+    { id: 'pk2', codigo: '800320', nombre: 'Capsula Descafeinado Blue', formato: 'Capsula x 1 ud', unidad_pedido: 'capsulas', precio_unidad: 0.46, iva: 10 },
+    { id: 'pk3', codigo: '3200', nombre: 'Blue Trastevere Roma X2', formato: 'Capsula x 1 ud', unidad_pedido: 'capsulas', precio_unidad: 0.73, iva: 10 },
+    { id: 'pk4', codigo: '800233', nombre: 'Cafe Soluble Dek Emblem (100 sticks)', formato: 'Estuche x 100 sticks', unidad_pedido: 'estuches', precio_unidad: 19.79, iva: 10 },
+    { id: 'pk5', codigo: '50165', nombre: 'Te Rojo Cuerpo del Deseo', formato: 'Unidad', unidad_pedido: 'uds', precio_unidad: 5.90, iva: 10 },
+    { id: 'pk6', codigo: '50166', nombre: 'Flores de Manzanilla', formato: 'Unidad', unidad_pedido: 'uds', precio_unidad: 5.90, iva: 10 },
+    { id: 'pk7', codigo: '50161', nombre: 'Te Negro Pakistani', formato: 'Unidad', unidad_pedido: 'uds', precio_unidad: 5.90, iva: 10 },
   ],
   'Martin Braun': [
     { id: 'mb1', codigo: '3306148', nombre: 'Chocolate a la Taza 1kg', formato: 'Unidad x 1kg', unidad_pedido: 'uds', precio_unidad: 8.10, iva: 10 },
