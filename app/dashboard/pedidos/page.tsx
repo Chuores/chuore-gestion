@@ -177,10 +177,12 @@ export default function PedidosPage() {
     })
     if (fechaEntrega) msg += `_Entrega: ${fechaEntrega}_\n\n`
     if (notaGeneral) msg += `_Obs: ${notaGeneral}_\n\n`
-    msg += 'Se ruega confirmación de recepción, disponibilidad de stock y fecha prevista de entrega.\n\n'
-    msg += 'Muchas gracias por su atención.\n\n'
-    msg += '*CHUORE \u00b7 623 181 751*\n'
-    msg += 'chuoreglobalbrands@chuore.es'
+    msg += 'Se ruega confirmacion de recepcion, disponibilidad de stock y fecha prevista de entrega.\n\n'
+    msg += 'Muchas gracias por su atencion.\n\n'
+    msg += '*CHUORE GESTION DE PEDIDOS*\n'
+    msg += 'CHUORE (Churros & More) Rua da Senra, 20\n'
+    msg += '15702 Santiago de Compostela (A Coruna)\n'
+    msg += '623 181 751 - chuoreglobalbrands@chuore.es'
     return msg
   }
 

@@ -68,8 +68,8 @@ export default function ProveedoresPage() {
                 {filtered.map(p => (
                   <tr key={p.id}>
                     <td style={{ fontWeight: '600', color: 'var(--c-text-1)' }}>{p.nombre}</td>
-                    <td style={{ fontSize: '12px' }}>{p.telefono || '—'}</td>
-                    <td style={{ fontSize: '12px' }}>{p.email || '—'}</td>
+                    <td style={{ fontSize: '12px' }}>{p.telefono ? <a href={`tel:${p.telefono.split('/')[0].trim()}`} style={{ color: 'var(--red)', textDecoration: 'none', fontWeight: '500' }}>{p.telefono}</a> : '—'}</td>
+                    <td style={{ fontSize: '12px' }}>{p.email ? <a href={`mailto:${p.email}`} style={{ color: 'var(--red)', textDecoration: 'none', fontWeight: '500' }}>{p.email}</a> : '—'}</td>
                     <td style={{ fontSize: '12px', color: 'var(--c-text-4)', maxWidth: '200px' }}>
                       <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.notas || '—'}</span>
                     </td>
